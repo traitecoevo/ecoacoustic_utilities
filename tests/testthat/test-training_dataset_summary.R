@@ -9,10 +9,10 @@ test_that("training_dataset_summary works with basic audio files", {
   dir.create(class2_dir, recursive = TRUE, showWarnings = FALSE)
   
   # Create mock audio files (just binary data)
-  writeBin(as.raw(1:1000), file.path(class1_dir, "audio1.wav"))
-  writeBin(as.raw(1:2000), file.path(class1_dir, "audio2.wav"))
-  writeBin(as.raw(1:1500), file.path(class2_dir, "audio3.mp3"))
-  writeBin(as.raw(1:1200), file.path(class2_dir, "audio4.wav"))
+  writeBin(rep(as.raw(1), 1000), file.path(class1_dir, "audio1.wav"))
+  writeBin(rep(as.raw(1), 2000), file.path(class1_dir, "audio2.wav"))
+  writeBin(rep(as.raw(1), 1500), file.path(class2_dir, "audio3.mp3"))
+  writeBin(rep(as.raw(1), 1200), file.path(class2_dir, "audio4.wav"))
   
   # Run summary (without tuneR)
   result <- training_dataset_summary(test_dir, use_tuneR = FALSE)
@@ -85,9 +85,9 @@ test_that("training_dataset_summary handles custom extensions", {
   dir.create(test_dir, showWarnings = FALSE)
   
   # Create files with different extensions
-  writeBin(as.raw(1:1000), file.path(test_dir, "audio.wav"))
-  writeBin(as.raw(1:1000), file.path(test_dir, "audio.flac"))
-  writeBin(as.raw(1:1000), file.path(test_dir, "audio.txt"))  # Not audio
+  writeBin(rep(as.raw(1), 1000), file.path(test_dir, "audio.wav"))
+  writeBin(rep(as.raw(1), 1000), file.path(test_dir, "audio.flac"))
+  writeBin(rep(as.raw(1), 1000), file.path(test_dir, "audio.txt"))  # Not audio
   
   result <- training_dataset_summary(
     test_dir, 
@@ -114,7 +114,7 @@ test_that("training_dataset_summary print method works", {
   test_dir <- file.path(temp_dir, "test_print")
   dir.create(test_dir, showWarnings = FALSE)
   
-  writeBin(as.raw(1:1000), file.path(test_dir, "audio.wav"))
+  writeBin(rep(as.raw(1), 1000), file.path(test_dir, "audio.wav"))
   
   result <- training_dataset_summary(test_dir, use_tuneR = FALSE)
   
@@ -134,9 +134,9 @@ test_that("training_dataset_summary handles nested subdirectories", {
   dir.create(sub1, recursive = TRUE, showWarnings = FALSE)
   dir.create(sub2, recursive = TRUE, showWarnings = FALSE)
   
-  writeBin(as.raw(1:1000), file.path(sub1, "audio1.wav"))
-  writeBin(as.raw(1:1000), file.path(sub2, "audio2.wav"))
-  writeBin(as.raw(1:1000), file.path(test_dir, "audio3.wav"))
+  writeBin(rep(as.raw(1), 1000), file.path(sub1, "audio1.wav"))
+  writeBin(rep(as.raw(1), 1000), file.path(sub2, "audio2.wav"))
+  writeBin(rep(as.raw(1), 1000), file.path(test_dir, "audio3.wav"))
   
   result <- training_dataset_summary(test_dir, use_tuneR = FALSE)
   
