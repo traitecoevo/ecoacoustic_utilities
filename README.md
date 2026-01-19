@@ -31,6 +31,7 @@ devtools::install_github("wcornwell/ecoacoustic_utilities")
 
 - **`biggest_files()`** - Find the largest files in a directory
 - **`find_duplicate_wavs()`** - Detect duplicate WAV files by content hash
+- **`training_dataset_summary()`** - Comprehensive analysis of audio training datasets
 
 ## Example Usage
 
@@ -67,6 +68,10 @@ birds <- get_ala_circle_occurrences(
   radius_km = 10,
   email = "your.email@example.com"
 )
+
+# Analyze an audio training dataset
+summary <- training_dataset_summary("/path/to/audio/dataset")
+print(summary)  # Shows class distribution, file types, sizes, durations, outliers
 ```
 
 ## License

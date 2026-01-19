@@ -1,7 +1,7 @@
 Package: EcoacousticUtilities
 Title: Utilities for Ecoacoustics
 Version: 0.1.0
-Authors@R: person("Z", "Cornwell", email = "wcornwell@gmail.com", role = c("aut", "cre"))
+Authors@R: person("WK", "Cornwell", email = "wcornwell@gmail.com", role = c("aut", "cre"))
 Description: Utilities for downloading and analyzing ecoacoustic data.
 License: MIT + file LICENSE
 Encoding: UTF-8
@@ -14,6 +14,7 @@ Imports:
 Suggests:
     dplyr,
     ggplot2,
+    tuneR,
     testthat (>= 3.0.0)
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3
