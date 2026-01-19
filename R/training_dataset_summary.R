@@ -174,19 +174,42 @@ training_dataset_summary <- function(
       
       message("Using parallel processing with ", n_cores, " cores...")
       
-      # Create cluster
-      cl <- parallel::makeCluster(n_cores)
-      on.exit(parallel::stopCluster(cl), add = TRUE)
-      
-      # Export necessary objects
-      parallel::clusterExport(cl, c("extract_duration"), envir = environment())
-      
-      # Process in parallel
-      durations <- parallel::parLapply(cl, files_to_process, extract_duration)
-      durations <- unlist(durations)
+      # Try to use pbapply for progress bar with parallel processing
+      if (show_progress && requireNamespace("pbapply", quietly = TRUE)) {
+        message("Processing files (progress bar enabled)...")
+        cl <- parallel::makeCluster(n_cores)
+        on.exit(parallel::stopCluster(cl), add = TRUE)
+        
+        # Export necessary objects
+        parallel::clusterExport(cl, c("extract_duration"), envir = environment())
+        
+        # Use pbapply for progress bar
+        durations <- pbapply::pblapply(
+          files_to_process, 
+          extract_duration,
+          cl = cl
+        )
+        durations <- unlist(durations)
+        
+      } else {
+        # Fallback to regular parallel without progress bar
+        if (show_progress) {
+          message("Processing files (install 'pbapply' package for progress bar)...")
+        }
+        
+        cl <- parallel::makeCluster(n_cores)
+        on.exit(parallel::stopCluster(cl), add = TRUE)
+        
+        # Export necessary objects
+        parallel::clusterExport(cl, c("extract_duration"), envir = environment())
+        
+        # Process in parallel without progress
+        durations <- parallel::parLapply(cl, files_to_process, extract_duration)
+        durations <- unlist(durations)
+      }
       
     } else {
-      # Sequential processing with optional progress bar
+      # Sequential processing with progress bar
       if (show_progress && requireNamespace("utils", quietly = TRUE)) {
         pb <- utils::txtProgressBar(min = 0, max = length(files_to_process), style = 3)
         durations <- vapply(seq_along(files_to_process), function(i) {
