@@ -1,0 +1,6 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^scripts$
+^verify_syntax\.R$
+^\.gemini$
+^sounds$

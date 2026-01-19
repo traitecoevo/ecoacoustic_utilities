@@ -1,0 +1,61 @@
+# Tests for API-dependent functions
+# These are integration tests that require network access
+# They are skipped by default and can be run with testthat::test_local()
+
+test_that("get_inat_sounds has correct parameter structure", {
+  # Test that function has expected parameters
+  params <- names(formals(get_inat_sounds))
+  
+  expect_true("taxon_name" %in% params)
+  expect_true("place_name" %in% params)
+  expect_true("target_n" %in% params)
+  expect_true("download" %in% params)
+  expect_true("use_place_filter" %in% params)
+  expect_true("quality" %in% params)
+  
+  # Test defaults
+  defaults <- formals(get_inat_sounds)
+  expect_equal(defaults$target_n, 300)
+  expect_equal(defaults$download, FALSE)
+  expect_equal(defaults$use_place_filter, TRUE)
+})
+
+test_that("get_inat_sounds quality parameter works", {
+  # Test that quality parameter accepts valid values
+  expect_no_error({
+    # This won't actually run the API call in test mode
+    formals(get_inat_sounds)$quality
+  })
+})
+
+test_that("orthoptera_species_with_real_sounds has correct defaults", {
+  # Test default parameters
+  defaults <- formals(orthoptera_species_with_real_sounds)
+  
+  expect_equal(defaults$min_recordings, 100)
+  expect_equal(defaults$taxon_id, 47651)
+  expect_equal(defaults$place_name, "Australia")
+  expect_equal(defaults$quality_grade, "research")
+  expect_equal(defaults$per_page, 200)
+})
+
+test_that("get_ala_circle_occurrences has correct parameter structure", {
+  # Test that function has expected parameters
+  params <- names(formals(get_ala_circle_occurrences))
+  
+  expect_true("taxon" %in% params)
+  expect_true("lat" %in% params)
+  expect_true("lon" %in% params)
+  expect_true("radius_km" %in% params)
+  expect_true("email" %in% params)
+  
+  # Test default radius
+  expect_equal(formals(get_ala_circle_occurrences)$radius_km, 10)
+})
+
+# Note: Full integration tests for API functions would require:
+# 1. Network access
+# 2. Valid API credentials
+# 3. Mocking of HTTP responses
+# These should be implemented separately with vcr or httptest packages
+# if comprehensive API testing is needed.

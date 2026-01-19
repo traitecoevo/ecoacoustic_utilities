@@ -1,6 +1,5 @@
 # install.packages(c("httr","jsonlite"))
-library(httr)
-library(jsonlite)
+
 
 get_inat_sounds <- function(
     taxon_name,
@@ -12,6 +11,8 @@ get_inat_sounds <- function(
     use_place_filter = TRUE,          # set FALSE for global queries
     quality = c("research", "all")    # NEW: "research" or "all"
 ) {
+  library(httr)
+  library(jsonlite)
   quality <- match.arg(quality)
   
   ua   <- user_agent("inat-audio-downloader/1.0 (your_email@example.com)")
@@ -201,17 +202,17 @@ get_inat_sounds <- function(
   return(total_records)
 }
 
-taxa<-"Epthianura tricolor"
+taxa<-"Turnix maculosus"
 # Just get the number of records, no download
 n <- get_inat_sounds(taxa, use_place_filter=FALSE, download = FALSE)
 n
 
 # Get number of records AND download up to 300 audio files
-n2 <- get_inat_sounds(taxa, use_place_filter=FALSE, target_n = 200, download = TRUE)
+n2 <- get_inat_sounds(taxa, place_name = "Australia", target_n = 900, download = TRUE,quality="research")
 
 
-n_global_all <- get_inat_sounds("Phaps chalcopter",
-                                place_name = "Australia",
-                                quality = "research",
-                                target_n = 300,
-                                download = TRUE)
+ç# n_global_all <- get_inat_sounds("Phaps chalcopter",
+#                                 place_name = "Australia",
+#                                 quality = "research",
+#                                 target_n = 300,
+#                                 download = TRUE)
