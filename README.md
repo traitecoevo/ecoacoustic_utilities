@@ -21,7 +21,14 @@ devtools::install_github("wcornwell/ecoacoustic_utilities")
 ### iNaturalist Functions
 
 - **`get_inat_sounds()`** - Download sound recordings from iNaturalist
-- **`orthoptera_species_with_real_sounds()`** - Query iNaturalist for species with sound recordings
+  - **Use case**: Download actual audio files for a specific taxon
+  - With `download=FALSE`: Get quick count of total observations with sounds
+  - With `download=TRUE`: Download up to N audio files to local directory
+  
+- **`get_inat_species_summary()`** - Get species-level summary of sound recordings
+  - **Use case**: Identify which species have the most recordings in a taxon/region
+  - Returns data.frame with counts per species (taxon_id, scientific_name, common_name, n_recordings)
+  - Useful for finding well-documented species before downloading
 
 ### ALA Functions
 
@@ -44,21 +51,35 @@ big_files <- biggest_files("/path/to/directory", n = 20)
 # Find duplicate WAV files
 duplicates <- find_duplicate_wavs("/path/to/audio/library")
 
-# Check how many iNaturalist recordings are available
+# === iNaturalist workflows ===
+
+# 1. Quick check: How many sound recordings exist?
 n_sounds <- get_inat_sounds(
   "Turnix maculosus",
   place_name = "Australia",
-  download = FALSE
+  download = FALSE  # Just get the count
 )
+print(n_sounds)  # e.g., 450
 
-# Download sound recordings
+# 2. Which species have the most recordings?
+species_summary <- get_inat_species_summary(
+  taxon_name = "Orthoptera",  # All crickets/grasshoppers
+  place_name = "Australia",
+  min_recordings = 50  # Only species with 50+ recordings
+)
+print(species_summary)
+# Returns data.frame with species ranked by recording count
+
+# 3. Download actual audio files for a specific species
 get_inat_sounds(
   "Turnix maculosus",
   place_name = "Australia",
   target_n = 100,
-  download = TRUE,
+  download = TRUE,  # Download files
   quality = "research"
 )
+
+# === ALA workflow ===
 
 # Get ALA occurrences within a radius
 birds <- get_ala_circle_occurrences(
@@ -68,6 +89,8 @@ birds <- get_ala_circle_occurrences(
   radius_km = 10,
   email = "your.email@example.com"
 )
+
+# === Training dataset analysis ===
 
 # Analyze an audio training dataset
 summary <- training_dataset_summary("/path/to/audio/dataset")

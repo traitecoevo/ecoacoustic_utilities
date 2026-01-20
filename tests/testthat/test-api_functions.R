@@ -28,9 +28,9 @@ test_that("get_inat_sounds quality parameter works", {
   })
 })
 
-test_that("orthoptera_species_with_real_sounds has correct defaults", {
+test_that("get_inat_species_summary has correct defaults", {
   # Test default parameters
-  defaults <- formals(orthoptera_species_with_real_sounds)
+  defaults <- formals(get_inat_species_summary)
   
   expect_equal(defaults$min_recordings, 100)
   expect_equal(defaults$taxon_id, 47651)

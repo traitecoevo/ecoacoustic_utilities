@@ -1,4 +1,4 @@
-#' Get Orthoptera Species with Sound Recordings from iNaturalist
+#' Get iNaturalist Species Summary by Sound Recording Counts
 #'
 #' Queries the iNaturalist API to find species-level taxa with sound recordings
 #' that meet specified criteria. Counts valid sound recordings per species based
@@ -30,13 +30,13 @@
 #' @examples
 #' \dontrun{
 #' # Get Orthoptera species with at least 100 recordings in Australia
-#' orth_aus <- orthoptera_species_with_real_sounds(
+#' orth_aus <- get_inat_species_summary(
 #'   min_recordings = 100,
 #'   place_name = "Australia"
 #' )
 #'
 #' # Search by taxon name instead of ID
-#' crickets <- orthoptera_species_with_real_sounds(
+#' crickets <- get_inat_species_summary(
 #'   taxon_name = "Gryllidae",
 #'   min_recordings = 50,
 #'   place_name = "United States"
@@ -46,7 +46,7 @@
 #' @export
 #' @importFrom httr GET user_agent timeout stop_for_status content
 #' @importFrom jsonlite fromJSON
-orthoptera_species_with_real_sounds <- function(
+get_inat_species_summary <- function(
     min_recordings   = 100,
     taxon_id         = 47651,   # Orthoptera
     taxon_name       = NULL,    # optional: resolve instead of hardcoding

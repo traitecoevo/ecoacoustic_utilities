@@ -7,3 +7,6 @@
 ^\.gemini$
 ^sounds$
 ^codecov\.yml$
+^CODECOV_SETUP\.md$
+^PERFORMANCE\.md$
+^\.DS_Store

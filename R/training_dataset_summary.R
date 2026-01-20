@@ -76,6 +76,7 @@
 #'
 #' @export
 #' @importFrom utils head tail
+#' @importFrom stats median sd
 training_dataset_summary <- function(
     root_dir,
     audio_extensions = c("wav", "mp3", "flac", "m4a", "ogg", "aiff", "aif"),
