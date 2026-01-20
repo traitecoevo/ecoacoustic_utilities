@@ -4,10 +4,14 @@
 \alias{find_duplicate_wavs}
 \title{Find Duplicate WAV Files by Content Hash}
 \usage{
-find_duplicate_wavs(dir)
+find_duplicate_wavs(dir, parallel = TRUE, n_cores = NULL)
 }
 \arguments{
 \item{dir}{Character. Path to the directory to search. Must exist.}
+
+\item{parallel}{Logical. If TRUE, use parallel processing for hashing. Default is TRUE.}
+
+\item{n_cores}{Integer. Number of cores to use. Default is NULL (auto-detect).}
 }
 \value{
 A named character vector where:

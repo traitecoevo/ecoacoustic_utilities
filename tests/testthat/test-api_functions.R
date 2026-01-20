@@ -16,8 +16,10 @@ test_that("get_inat_sounds has correct parameter structure", {
   # Test defaults
   defaults <- formals(get_inat_sounds)
   expect_equal(defaults$target_n, 300)
-  expect_equal(defaults$download, FALSE)
-  expect_equal(defaults$use_place_filter, TRUE)
+  expect_equal(defaults$download, TRUE)
+  expect_equal(defaults$use_place_filter, FALSE)
+  expect_equal(defaults$place_name, "Australia")
+  expect_equal(defaults$include_taxon_name, TRUE)
 })
 
 test_that("get_inat_sounds quality parameter works", {
@@ -28,15 +30,20 @@ test_that("get_inat_sounds quality parameter works", {
   })
 })
 
+test_that("get_inat_sounds accepts include_taxon_name", {
+  expect_true("include_taxon_name" %in% names(formals(get_inat_sounds)))
+})
+
 test_that("get_inat_species_summary has correct defaults", {
   # Test default parameters
   defaults <- formals(get_inat_species_summary)
   
-  expect_equal(defaults$min_recordings, 100)
-  expect_equal(defaults$taxon_id, 47651)
+  expect_equal(defaults$min_recordings, 1)
+  expect_equal(defaults$taxon_id, NULL)
   expect_equal(defaults$place_name, "Australia")
   expect_equal(defaults$quality_grade, "research")
   expect_equal(defaults$per_page, 200)
+  expect_equal(defaults$max_pages, 10)
 })
 
 test_that("get_ala_circle_occurrences has correct parameter structure", {

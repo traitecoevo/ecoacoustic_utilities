@@ -9,6 +9,7 @@ training_dataset_summary(
   audio_extensions = c("wav", "mp3", "flac", "m4a", "ogg", "aiff", "aif"),
   outlier_threshold = 3,
   use_tuneR = TRUE,
+  ignore_classes = NULL,
   sample_size = NULL,
   parallel = TRUE,
   n_cores = NULL,
@@ -27,6 +28,9 @@ to flag as outliers. Default is 3.}
 
 \item{use_tuneR}{Logical. If TRUE and tuneR package is available, extract
 detailed audio metadata (duration, sample rate, etc.). Default is TRUE.}
+
+\item{ignore_classes}{Character vector. Names of class subdirectories to ignore
+(e.g. "noise"). Default is NULL.}
 
 \item{sample_size}{Integer. If not NULL, randomly sample this many files for
 duration analysis instead of processing all files. Useful for large datasets.
@@ -50,6 +54,8 @@ A list with the following components:
     \item{duration_stats}{Data.frame with duration statistics (if available)}
     \item{size_stats}{Data.frame with file size statistics}
     \item{outliers}{Data.frame with flagged unusual files}
+    \item{imbalance_stats}{Data.frame with class imbalance metrics}
+    \item{recommendations}{Character vector of transfer learning advice}
   }
 }
 \description{
@@ -74,6 +80,12 @@ Outliers are identified as files that deviate from the mean by more than
 \dontrun{
 # Analyze a training dataset
 summary <- training_dataset_summary("/path/to/audio/dataset")
+
+# Ignore noise class
+summary <- training_dataset_summary(
+  "/path/to/dataset",
+  ignore_classes = c("noise", "background")
+)
 
 # Print summary statistics
 print(summary$summary)

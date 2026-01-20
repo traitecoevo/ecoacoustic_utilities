@@ -5,26 +5,27 @@
 \title{Get iNaturalist Species Summary by Sound Recording Counts}
 \usage{
 get_inat_species_summary(
-  min_recordings = 100,
-  taxon_id = 47651,
+  min_recordings = 1,
   taxon_name = NULL,
+  taxon_id = NULL,
   place_name = "Australia",
   place_id = NULL,
   quality_grade = "research",
   per_page = 200,
-  max_pages = Inf,
+  max_pages = 10,
   allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa"))
 )
 }
 \arguments{
 \item{min_recordings}{Numeric. Minimum number of valid recordings required to
-include a species in results. Default is 100.}
-
-\item{taxon_id}{Integer. The iNaturalist taxon ID to search within. Default is
-47651 (Orthoptera). Ignored if \code{taxon_name} is provided.}
+include a species in results. Default is 1.}
 
 \item{taxon_name}{Character. Optional taxon name to resolve to an ID. If provided,
 overrides \code{taxon_id}. Default is NULL.}
+
+\item{taxon_id}{Integer. The iNaturalist taxon ID to search within. Default is
+NULL (defaults to 47651 Orthoptera if both taxon_id and taxon_name are NULL).
+Ignored if \code{taxon_name} is provided.}
 
 \item{place_name}{Character. Name of the place to search within. Default is
 "Australia".}
@@ -37,8 +38,8 @@ from \code{place_name}. Default is NULL.}
 
 \item{per_page}{Integer. Number of results per API page. Default is 200.}
 
-\item{max_pages}{Numeric. Maximum number of pages to retrieve. Use Inf for all
-available pages. Default is Inf.}
+\item{max_pages}{Numeric. Maximum number of pages to retrieve. Default is 10.
+Use Inf for all available pages.}
 
 \item{allowed_licenses}{Character vector. Lowercase license codes to accept.
 Default includes Creative Commons licenses: cc0, cc-by, cc-by-sa, cc-by-nc,

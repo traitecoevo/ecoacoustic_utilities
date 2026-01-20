@@ -5,19 +5,21 @@
 #'
 #' @param taxon_name Character. Scientific or common name of the taxon to search for.
 #' @param place_name Character. Name of the geographic place to filter by. Required
-#'   if \code{use_place_filter = TRUE}. Default is NULL.
+#'   if \code{use_place_filter = TRUE}. Default is "Australia".
 #' @param target_n Numeric. Target number of sound files to download. Default is 300.
 #' @param download Logical. If TRUE, downloads audio files. If FALSE, only returns
-#'   the count of available recordings. Default is FALSE.
+#'   the count of available recordings. Default is TRUE
 #' @param out_dir Character. Output directory for downloaded files. Will create
 #'   subdirectories "audio" and "metadata.csv". Default is "sounds".
 #' @param allowed_licenses Character vector. Lowercase license codes to accept.
 #'   Default includes Creative Commons licenses: cc0, cc-by, cc-by-sa, cc-by-nc,
 #'   cc-by-nc-sa. Empty license codes are also accepted.
 #' @param use_place_filter Logical. If TRUE, filters observations by place. If FALSE,
-#'   searches globally. Default is TRUE.
+#'   searches globally, UNLESS \code{place_name} is explicitly provided. Default is FALSE.
 #' @param quality Character. Quality grade filter: "research" for research-grade
 #'   observations only, or "all" for all quality grades. Default is "research".
+#' @param include_taxon_name Logical. If TRUE, prepends the taxon name to the filename
+#'   (e.g., "Genus_species_ObsID_SoundID.ext"). Default is TRUE.
 #'
 #' @return Integer. Total number of matching records found in iNaturalist.
 #'
@@ -64,16 +66,22 @@
 #' @importFrom utils write.csv write.table
 get_inat_sounds <- function(
     taxon_name,
-    place_name = NULL,
+    place_name = "Australia",
     target_n = 300,
-    download = FALSE,
+    download = TRUE,
     out_dir = "sounds",
     allowed_licenses = tolower(c("cc0","cc-by","cc-by-sa","cc-by-nc","cc-by-nc-sa")),
-    use_place_filter = TRUE,          # set FALSE for global queries
-    quality = c("research", "all")    # NEW: "research" or "all"
+    use_place_filter = FALSE,          # set FALSE for global queries
+    quality = c("research", "all"),    # NEW: "research" or "all"
+    include_taxon_name = TRUE          # Include species name in filename
 ) {
   quality <- match.arg(quality)
   
+  # Auto-detect if place filter should be used
+  if (!missing(place_name)) {
+    use_place_filter <- TRUE
+  }
+
   ua   <- user_agent("inat-audio-downloader/1.0 (your_email@example.com)")
   base <- "https://api.inaturalist.org/v1/observations"
   
@@ -139,7 +147,7 @@ get_inat_sounds <- function(
   qual_msg <- if (quality == "research") "research grade" else "all quality grades"
   
   message("Found ", total_records,
-          " records with sounds for taxon '", taxon_name,
+          " observations with sounds for taxon '", taxon_name,
           "' ", loc_msg, " (", qual_msg, ").")
   
   ## If we're not downloading, just return the count
@@ -156,6 +164,7 @@ get_inat_sounds <- function(
       data.frame(
         observation_id = integer(),
         sound_id       = integer(),
+        taxon_name     = character(),  # Added taxon_name to metadata
         file_url       = character(),
         file_path      = character(),
         license_code   = character(),
@@ -206,6 +215,14 @@ get_inat_sounds <- function(
       if (downloaded >= target_n) break
       if (is.null(obs$sounds) || length(obs$sounds) == 0) next
       
+      # Prepare taxon string for filename if requested
+      tax_str <- ""
+      if (include_taxon_name && !is.null(obs$taxon$name)) {
+        # Sanitize taxon name: replace spaces with underscores, remove non-alphanumeric
+        cleaned_name <- gsub("[^A-Za-z0-9_]", "", gsub(" ", "_", obs$taxon$name))
+        tax_str <- paste0(cleaned_name, "_")
+      }
+      
       for (s in obs$sounds) {
         if (downloaded >= target_n) break
         url <- s$file_url
@@ -216,7 +233,10 @@ get_inat_sounds <- function(
         
         ext <- tolower(sub(".*(\\.mp3|\\.wav|\\.m4a|\\.ogg).*", "\\1", url))
         if (!grepl("^\\.", ext)) ext <- ".mp3"
-        fname <- sprintf("%s_%s%s", obs$id, s$id, ext)
+        
+        # New filename format: [Taxon_Name_]ObsID_SoundID.ext
+        fname <- sprintf("%s%s_%s%s", tax_str, obs$id, s$id, ext)
+        
         if (fname %in% seen) next
         
         dest <- file.path(audio_dir, fname)
@@ -234,6 +254,7 @@ get_inat_sounds <- function(
             data.frame(
               observation_id = obs$id,
               sound_id       = s$id,
+              taxon_name     = ifelse(is.null(obs$taxon$name), NA, obs$taxon$name),
               file_url       = url,
               file_path      = dest,
               license_code   = lic

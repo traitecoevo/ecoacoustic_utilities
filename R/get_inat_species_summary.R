@@ -5,9 +5,10 @@
 #' on license requirements.
 #'
 #' @param min_recordings Numeric. Minimum number of valid recordings required to
-#'   include a species in results. Default is 100.
+#'   include a species in results. Default is 1.
 #' @param taxon_id Integer. The iNaturalist taxon ID to search within. Default is
-#'   47651 (Orthoptera). Ignored if \code{taxon_name} is provided.
+#'   NULL (defaults to 47651 Orthoptera if both taxon_id and taxon_name are NULL).
+#'   Ignored if \code{taxon_name} is provided.
 #' @param taxon_name Character. Optional taxon name to resolve to an ID. If provided,
 #'   overrides \code{taxon_id}. Default is NULL.
 #' @param place_name Character. Name of the place to search within. Default is
@@ -17,8 +18,8 @@
 #' @param quality_grade Character. Quality grade filter for observations. Default is
 #'   "research".
 #' @param per_page Integer. Number of results per API page. Default is 200.
-#' @param max_pages Numeric. Maximum number of pages to retrieve. Use Inf for all
-#'   available pages. Default is Inf.
+#' @param max_pages Numeric. Maximum number of pages to retrieve. Default is 10.
+#'   Use Inf for all available pages.
 #' @param allowed_licenses Character vector. Lowercase license codes to accept.
 #'   Default includes Creative Commons licenses: cc0, cc-by, cc-by-sa, cc-by-nc,
 #'   cc-by-nc-sa.
@@ -47,20 +48,20 @@
 #' @importFrom httr GET user_agent timeout stop_for_status content
 #' @importFrom jsonlite fromJSON
 get_inat_species_summary <- function(
-    min_recordings   = 100,
-    taxon_id         = 47651,   # Orthoptera
-    taxon_name       = NULL,    # optional: resolve instead of hardcoding
+    min_recordings   = 1,
+    taxon_name       = NULL,    
+    taxon_id         = NULL,    
     place_name       = "Australia",
     place_id         = NULL,    # if NULL, look up
     quality_grade    = "research",
     per_page         = 200,
-    max_pages        = Inf,
+    max_pages        = 10,
     allowed_licenses = tolower(c("cc0","cc-by","cc-by-sa","cc-by-nc","cc-by-nc-sa"))
 ) {
   ua <- user_agent("inat-orthoptera-sounds/1.0 (your_email@example.com)")
   
   ## --- Resolve taxon_id from name if requested ---
-  if (!is.null(taxon_name) && is.null(taxon_id)) {
+  if (!is.null(taxon_name)) {
     tax_resp <- GET(
       "https://api.inaturalist.org/v1/taxa",
       query = list(q = taxon_name, per_page = 1),
@@ -73,6 +74,11 @@ get_inat_species_summary <- function(
       stop("No taxon found for name: ", taxon_name)
     }
     taxon_id <- tax_json$results[[1]]$id
+  }
+  
+  # Default to Orthoptera if neither provided
+  if (is.null(taxon_id)) {
+    taxon_id <- 47651
   }
   
   ## --- Resolve place_id from name if needed ---

@@ -21,12 +21,22 @@ test_that("training_dataset_summary works with basic audio files", {
   expect_type(result, "list")
   expect_s3_class(result, "training_dataset_summary")
   expect_true(all(c("summary", "class_distribution", "file_type_distribution", 
-                    "size_stats", "duration_stats", "outliers") %in% names(result)))
+                    "size_stats", "duration_stats", "outliers",
+                    "imbalance_stats", "recommendations") %in% names(result)))
   
   # Test summary
   expect_equal(result$summary$total_files, 4)
   expect_equal(result$summary$total_classes, 2)
   expect_equal(result$summary$n_file_types, 2)
+  
+  # Test imbalance stats
+  expect_equal(result$imbalance_stats$min_files, 2)
+  expect_equal(result$imbalance_stats$max_files, 2)
+  expect_equal(result$imbalance_stats$imbalance_ratio, 1)
+  
+  # Test recommendations (should have "Small dataset" recommendation)
+  expect_true(length(result$recommendations) > 0)
+  expect_true(any(grepl("Small dataset", result$recommendations)))
   
   # Test class distribution
   expect_equal(nrow(result$class_distribution), 2)
@@ -145,6 +155,35 @@ test_that("training_dataset_summary handles nested subdirectories", {
   
   # Should have multiple classes
   expect_true(result$summary$total_classes >= 2)
+  
+  unlink(test_dir, recursive = TRUE)
+})
+
+test_that("training_dataset_summary ignores specified classes", {
+  temp_dir <- tempdir()
+  test_dir <- file.path(temp_dir, "test_ignore")
+  class1_dir <- file.path(test_dir, "class1")
+  noise_dir <- file.path(test_dir, "noise")
+  
+  dir.create(class1_dir, recursive = TRUE, showWarnings = FALSE)
+  dir.create(noise_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  writeBin(rep(as.raw(1), 1000), file.path(class1_dir, "audio1.wav"))
+  writeBin(rep(as.raw(1), 1000), file.path(noise_dir, "noise1.wav"))
+  writeBin(rep(as.raw(1), 1000), file.path(noise_dir, "noise2.wav"))
+  
+  # Run normally first
+  res1 <- training_dataset_summary(test_dir, use_tuneR = FALSE)
+  expect_equal(res1$summary$total_files, 3)
+  
+  # Run with ignore_classes
+  res2 <- training_dataset_summary(test_dir, ignore_classes = "noise", use_tuneR = FALSE)
+  
+  # Should only have class1 file
+  expect_equal(res2$summary$total_files, 1)
+  expect_equal(res2$summary$total_classes, 1)
+  expect_equal(as.character(res2$class_distribution$class), "class1")
+  expect_false("noise" %in% res2$class_distribution$class)
   
   unlink(test_dir, recursive = TRUE)
 })

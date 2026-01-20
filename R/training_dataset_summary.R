@@ -12,6 +12,8 @@
 #'   to flag as outliers. Default is 3.
 #' @param use_tuneR Logical. If TRUE and tuneR package is available, extract
 #'   detailed audio metadata (duration, sample rate, etc.). Default is TRUE.
+#' @param ignore_classes Character vector. Names of class subdirectories to ignore
+#'   (e.g. "noise"). Default is NULL.
 #' @param sample_size Integer. If not NULL, randomly sample this many files for
 #'   duration analysis instead of processing all files. Useful for large datasets.
 #'   Default is NULL (process all files).
@@ -30,6 +32,8 @@
 #'     \item{duration_stats}{Data.frame with duration statistics (if available)}
 #'     \item{size_stats}{Data.frame with file size statistics}
 #'     \item{outliers}{Data.frame with flagged unusual files}
+#'     \item{imbalance_stats}{Data.frame with class imbalance metrics}
+#'     \item{recommendations}{Character vector of transfer learning advice}
 #'   }
 #'
 #' @details
@@ -49,6 +53,12 @@
 #' \dontrun{
 #' # Analyze a training dataset
 #' summary <- training_dataset_summary("/path/to/audio/dataset")
+#' 
+#' # Ignore noise class
+#' summary <- training_dataset_summary(
+#'   "/path/to/dataset",
+#'   ignore_classes = c("noise", "background")
+#' )
 #' 
 #' # Print summary statistics
 #' print(summary$summary)
@@ -76,12 +86,13 @@
 #'
 #' @export
 #' @importFrom utils head tail
-#' @importFrom stats median sd
+#' @importFrom stats median sd quantile
 training_dataset_summary <- function(
     root_dir,
     audio_extensions = c("wav", "mp3", "flac", "m4a", "ogg", "aiff", "aif"),
     outlier_threshold = 3,
     use_tuneR = TRUE,
+    ignore_classes = NULL,
     sample_size = NULL,
     parallel = TRUE,
     n_cores = NULL,
@@ -116,7 +127,9 @@ training_dataset_summary <- function(
       file_type_distribution = data.frame(),
       duration_stats = data.frame(),
       size_stats = data.frame(),
-      outliers = data.frame()
+      outliers = data.frame(),
+      imbalance_stats = data.frame(),
+      recommendations = character()
     ))
   }
   
@@ -128,6 +141,35 @@ training_dataset_summary <- function(
   # Extract class (immediate subdirectory)
   file_info$class <- dirname(file_info$relative_path)
   file_info$class[file_info$class == "."] <- "root"
+  
+  # Filter out ignored classes
+  if (!is.null(ignore_classes)) {
+    ignored_indices <- file_info$class %in% ignore_classes
+    n_ignored <- sum(ignored_indices)
+    
+    if (n_ignored > 0) {
+      if (show_progress) {
+        message("Ignoring ", n_ignored, " files from classes: ", 
+                paste(intersect(unique(file_info$class), ignore_classes), collapse = ", "))
+      }
+      file_info <- file_info[!ignored_indices, ]
+      audio_files <- file_info$path # Update audio_files vector too
+      
+      if (nrow(file_info) == 0) {
+        warning("All files were filtered out by ignore_classes.")
+        return(list(
+          summary = data.frame(total_files = 0, total_classes = 0),
+          class_distribution = data.frame(),
+          file_type_distribution = data.frame(),
+          duration_stats = data.frame(),
+          size_stats = data.frame(),
+          outliers = data.frame(),
+          imbalance_stats = data.frame(),
+          recommendations = character()
+        ))
+      }
+    }
+  }
   
   # Extract file extension
   file_info$extension <- tolower(sub(".*\\.", "", file_info$path))
@@ -339,16 +381,58 @@ training_dataset_summary <- function(
   if (has_tuneR && any(!is.na(file_info$duration_sec))) {
     summary_df$total_duration_hours <- sum(file_info$duration_sec, na.rm = TRUE) / 3600
     summary_df$files_with_duration <- sum(!is.na(file_info$duration_sec))
+    # BirdNET uses 3-second segments. Estimate total segments.
+    summary_df$est_3s_segments <- floor(sum(file_info$duration_sec, na.rm = TRUE) / 3)
   }
   
+  # Imbalance statistics
+  n_files <- class_dist$n_files
+  imbalance_stats <- data.frame(
+    min_files = min(n_files),
+    max_files = max(n_files),
+    median_files = median(n_files),
+    mean_files = mean(n_files),
+    imbalance_ratio = max(n_files) / min(n_files),
+    n_small_classes_lt_50 = sum(n_files < 50),
+    n_small_classes_lt_100 = sum(n_files < 100)
+  )
+  
+  # Heuristic Recommendations
+  recommendations <- character()
+  
+  if (imbalance_stats$imbalance_ratio > 10) {
+    recommendations <- c(recommendations, 
+      "High class imbalance detected (ratio > 10). Consider using --focal-loss with --focal-loss-gamma 2.0 or higher.")
+  } else if (imbalance_stats$imbalance_ratio > 5) {
+     recommendations <- c(recommendations, 
+      "Moderate class imbalance detected. --focal-loss may be beneficial.")
+  }
+  
+  if (imbalance_stats$n_small_classes_lt_50 > 0) {
+    recommendations <- c(recommendations,
+      paste0(imbalance_stats$n_small_classes_lt_50, " classes have < 50 samples. Consider using --upsampling_ratio (e.g., 0.5 - 1.0) to balance training."))
+  }
+  
+  if (summary_df$total_files < 1000) {
+    recommendations <- c(recommendations,
+      "Small dataset (< 1000 files). Use a lower learning rate (e.g., 0.0001) and fewer epochs to prevent overfitting.")
+  }
+  
+  if (nrow(outliers) > 0) {
+    recommendations <- c(recommendations,
+      paste0(nrow(outliers), " outliers detected (unusual size/duration). Review 'outliers' to ensure data quality."))
+  }
+
   # Return comprehensive summary
   result <- list(
     summary = summary_df,
+    imbalance_stats = imbalance_stats,
     class_distribution = class_dist,
     file_type_distribution = type_dist,
     size_stats = size_stats,
     duration_stats = duration_stats,
-    outliers = outliers
+    outliers = outliers,
+    recommendations = recommendations
   )
   
   class(result) <- c("training_dataset_summary", "list")
@@ -393,6 +477,15 @@ print.training_dataset_summary <- function(x, ...) {
     }
   } else {
     cat("No outliers detected.\n")
+  }
+  
+  cat("\nClass Imbalance Statistics:\n")
+  print(x$imbalance_stats, row.names = FALSE)
+  cat("\n")
+  
+  if (length(x$recommendations) > 0) {
+    cat("=== Recommendations for Transfer Learning ===\n")
+    cat(paste("-", x$recommendations, collapse = "\n"), "\n")
   }
   
   invisible(x)

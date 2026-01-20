@@ -6,25 +6,26 @@
 \usage{
 get_inat_sounds(
   taxon_name,
-  place_name = NULL,
+  place_name = "Australia",
   target_n = 300,
-  download = FALSE,
+  download = TRUE,
   out_dir = "sounds",
   allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa")),
-  use_place_filter = TRUE,
-  quality = c("research", "all")
+  use_place_filter = FALSE,
+  quality = c("research", "all"),
+  include_taxon_name = TRUE
 )
 }
 \arguments{
 \item{taxon_name}{Character. Scientific or common name of the taxon to search for.}
 
 \item{place_name}{Character. Name of the geographic place to filter by. Required
-if \code{use_place_filter = TRUE}. Default is NULL.}
+if \code{use_place_filter = TRUE}. Default is "Australia".}
 
 \item{target_n}{Numeric. Target number of sound files to download. Default is 300.}
 
 \item{download}{Logical. If TRUE, downloads audio files. If FALSE, only returns
-the count of available recordings. Default is FALSE.}
+the count of available recordings. Default is TRUE}
 
 \item{out_dir}{Character. Output directory for downloaded files. Will create
 subdirectories "audio" and "metadata.csv". Default is "sounds".}
@@ -34,10 +35,13 @@ Default includes Creative Commons licenses: cc0, cc-by, cc-by-sa, cc-by-nc,
 cc-by-nc-sa. Empty license codes are also accepted.}
 
 \item{use_place_filter}{Logical. If TRUE, filters observations by place. If FALSE,
-searches globally. Default is TRUE.}
+searches globally, UNLESS \code{place_name} is explicitly provided. Default is FALSE.}
 
 \item{quality}{Character. Quality grade filter: "research" for research-grade
 observations only, or "all" for all quality grades. Default is "research".}
+
+\item{include_taxon_name}{Logical. If TRUE, prepends the taxon name to the filename
+(e.g., "Genus_species_ObsID_SoundID.ext"). Default is TRUE.}
 }
 \value{
 Integer. Total number of matching records found in iNaturalist.

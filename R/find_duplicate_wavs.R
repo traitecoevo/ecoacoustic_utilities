@@ -34,7 +34,12 @@
 #'
 #' @export
 #' @importFrom digest digest
-find_duplicate_wavs <- function(dir) {
+#' @param parallel Logical. If TRUE, use parallel processing for hashing. Default is TRUE.
+#' @param n_cores Integer. Number of cores to use. Default is NULL (auto-detect).
+#'
+#' @export
+#' @importFrom digest digest
+find_duplicate_wavs <- function(dir, parallel = TRUE, n_cores = NULL) {
   # Check that directory exists
   if (!dir.exists(dir)) {
     stop("Directory does not exist: ", dir)
@@ -64,18 +69,71 @@ find_duplicate_wavs <- function(dir) {
     stop("Package 'digest' is required. Install it with install.packages('digest').")
   }
   
-  # Compute a hash of each file's *binary* content
-  hashes <- vapply(
-    wav_files,
-    FUN       = digest::digest,
-    FUN.VALUE = character(1),
-    file      = TRUE,     # hash file on disk, not R object
-    algo      = "md5",    # or "sha1" etc.
-    serialize = FALSE
-  )
+  message("Found ", length(wav_files), " total .wav files. Checking file sizes...")
   
+  # 1. PRE-FILTER BY SIZE
+  # Only files with identical sizes CAN be duplicates.
+  file_sizes <- file.size(wav_files)
+  
+  # Identify sizes that appear more than once
+  dup_sizes <- file_sizes[duplicated(file_sizes) | duplicated(file_sizes, fromLast = TRUE)]
+  dup_sizes <- unique(dup_sizes)
+  
+  # Filter candidates
+  candidate_indices <- which(file_sizes %in% dup_sizes)
+  
+  if (length(candidate_indices) == 0) {
+    message("No files share the same size. No content duplicates found.")
+    return(invisible(character(0)))
+  }
+  
+  candidates <- wav_files[candidate_indices]
+  message("Hashing ", length(candidates), " candidate files (sharing same size)...")
+  
+  # 2. HASH CANDIDATES (Parallel Option)
+  
+  compute_hash <- function(f) {
+    # Use xxhash64 for speed if available, fallback to md5
+    tryCatch({
+      digest::digest(f, file = TRUE, algo = "xxhash64", serialize = FALSE)
+    }, error = function(e) {
+      digest::digest(f, file = TRUE, algo = "md5", serialize = FALSE)
+    })
+  }
+  
+  hashes <- character(length(candidates))
+  
+  use_parallel <- parallel && length(candidates) > 50 && requireNamespace("parallel", quietly = TRUE)
+  
+  if (use_parallel) {
+    if (is.null(n_cores)) {
+      n_cores <- max(1, floor(parallel::detectCores() / 2))
+    }
+    # Cap cores
+    n_cores <- min(n_cores, length(candidates))
+    
+    if (n_cores > 1) {
+      message("Using parallel hashing with ", n_cores, " cores...")
+      cl <- parallel::makeCluster(n_cores)
+      on.exit(parallel::stopCluster(cl), add = TRUE)
+      
+      # Export digest if needed (usually loaded on workers if package matches)
+      # parallel::clusterEvalQ(cl, library(digest))
+      
+      hashes <- unlist(parallel::parLapply(cl, candidates, function(f) {
+        digest::digest(f, file = TRUE, algo = "xxhash64", serialize = FALSE)
+      }))
+    } else {
+      hashes <- vapply(candidates, compute_hash, character(1))
+    }
+  } else {
+    # Sequential (with progress bar if many files?)
+    hashes <- vapply(candidates, compute_hash, character(1))
+  }
+  
+  # Create data frame of candidates
   df <- data.frame(
-    file = wav_files,
+    file = candidates,
     hash = hashes,
     stringsAsFactors = FALSE
   )
@@ -84,8 +142,7 @@ find_duplicate_wavs <- function(dir) {
   dup_hashes <- unique(df$hash[duplicated(df$hash)])
   
   if (length(dup_hashes) == 0L) {
-    message("No duplicate .wav contents found in ", dir, " or its immediate subfolders")
-    # return empty character vector for consistency
+    message("No duplicate .wav contents found after hashing candidates.")
     return(invisible(character(0)))
   }
   
@@ -94,7 +151,6 @@ find_duplicate_wavs <- function(dir) {
     dup_hashes,
     FUN = function(h) {
       files <- df$file[df$hash == h]
-      # pick the first one (or use sort(files)[1L] if you want deterministic ordering)
       files[1L]
     },
     FUN.VALUE = character(1)
