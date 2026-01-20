@@ -28,7 +28,7 @@ You can install the development version of EcoacousticUtilities from GitHub:
 
 ```{r eval=FALSE}
 # install.packages("devtools")
-devtools::install_github("wcornwell/ecoacoustic_utilities")
+#devtools::install_github("wcornwell/ecoacoustic_utilities")
 ```
 
 ## Functions
@@ -86,7 +86,7 @@ print(n_sounds)  # e.g., 450
 species_summary <- get_inat_species_summary(
   taxon_name = "Orthoptera",  # All crickets/grasshoppers
   place_name = "Australia",
-  min_recordings = 50  # Only species with 50+ recordings
+  min_recordings = 5  # Only species with 5+ recordings
 )
 print(species_summary)
 
@@ -107,15 +107,15 @@ get_inat_sounds(
 
 Here's a real example analyzing cricket and grasshopper recordings in Australia:
 
-```{r example-orthoptera, eval=FALSE}
+```{r example-orthoptera}
 library(EcoacousticUtilities)
 library(ggplot2)
 
-# Get species with at least 100 recordings
+# Get species with at least 5 recordings
 orth_summary <- get_inat_species_summary(
   taxon_name = "Orthoptera",
   place_name = "Australia",
-  min_recordings = 100
+  min_recordings = 5
 )
 
 # View top species

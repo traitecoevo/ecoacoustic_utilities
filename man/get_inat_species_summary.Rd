@@ -56,16 +56,16 @@ on license requirements.
 }
 \examples{
 \dontrun{
-# Get Orthoptera species with at least 100 recordings in Australia
+# Get Orthoptera species with at least 5 recordings in Australia
 orth_aus <- get_inat_species_summary(
-  min_recordings = 100,
+  min_recordings = 5,
   place_name = "Australia"
 )
 
 # Search by taxon name instead of ID
 crickets <- get_inat_species_summary(
   taxon_name = "Gryllidae",
-  min_recordings = 50,
+  min_recordings = 5,
   place_name = "United States"
 )
 }
