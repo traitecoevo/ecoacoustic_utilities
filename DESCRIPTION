@@ -9,12 +9,12 @@ Depends:
     R (>= 4.1.0)
 Imports:
     httr,
+    ggplot2,
     jsonlite,
     galah,
     digest
 Suggests:
     dplyr,
-    ggplot2,
     tuneR,
     pbapply,
     testthat (>= 3.0.0)
