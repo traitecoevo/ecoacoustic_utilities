@@ -104,6 +104,9 @@ training_dataset_summary <- function(
     stop("Directory does not exist: ", root_dir)
   }
   
+  # Normalize root_dir to use forward slashes for consistent regex matching
+  root_dir <- normalizePath(root_dir, winslash = "/", mustWork = TRUE)
+  
   # Check if tuneR is available
   has_tuneR <- use_tuneR && requireNamespace("tuneR", quietly = TRUE)
   
@@ -135,8 +138,14 @@ training_dataset_summary <- function(
   
   # Get file info
   file_info <- file.info(audio_files)
-  file_info$path <- rownames(file_info)
-  file_info$relative_path <- gsub(paste0("^", root_dir, "/?"), "", file_info$path)
+  
+  # Ensure paths use forward slashes to match root_dir
+  file_info$path <- normalizePath(rownames(file_info), winslash = "/", mustWork = FALSE) 
+  
+  # Remove root_dir from path to get relative path
+  # Escape regex special characters in root_dir just in case (though normalizePath usually safe)
+  root_pattern <- paste0("^", gsub("([+|\\\\^$*?.()[{])", "\\\\\\1", root_dir), "/?")
+  file_info$relative_path <- gsub(root_pattern, "", file_info$path)
   
   # Extract class (immediate subdirectory)
   file_info$class <- dirname(file_info$relative_path)
