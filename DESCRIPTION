@@ -12,7 +12,10 @@ Imports:
     ggplot2,
     jsonlite,
     galah,
-    digest
+    digest,
+    seewave,
+    tuneR,
+    warbleR
 Suggests:
     dplyr,
     tuneR,
