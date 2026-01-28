@@ -46,6 +46,7 @@ A data frame with the following columns:
   \item \code{file}: Name of the file or "WaveObject".
   \item \code{selec}: Selection ID (or "all" if no selection table).
   \item \code{duration}: Duration of the selection in seconds.
+  \item \code{freq_peak}: Peak/Dominant frequency (kHz) (frequency with maximum amplitude).
   \item \code{freq_min}: Minimum frequency (kHz) (5th percentile of distribution).
   \item \code{freq_max}: Maximum frequency (kHz) (95th percentile of distribution).
   \item \code{bandwidth}: Bandwidth (kHz) (freq_max - freq_min).

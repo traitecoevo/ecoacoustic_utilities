@@ -26,6 +26,7 @@
 #'   \item \code{file}: Name of the file or "WaveObject".
 #'   \item \code{selec}: Selection ID (or "all" if no selection table).
 #'   \item \code{duration}: Duration of the selection in seconds.
+#'   \item \code{freq_peak}: Peak/Dominant frequency (kHz) (frequency with maximum amplitude).
 #'   \item \code{freq_min}: Minimum frequency (kHz) (5th percentile of distribution).
 #'   \item \code{freq_max}: Maximum frequency (kHz) (95th percentile of distribution).
 #'   \item \code{bandwidth}: Bandwidth (kHz) (freq_max - freq_min).
@@ -278,6 +279,7 @@ analyze_call_properties <- function(wave, selection_table = NULL, threshold = 5,
             file = file_name,
             selec = sel$selec,
             duration = duration,
+            freq_peak = peak_freq,
             freq_min = freq_min,
             freq_max = freq_max,
             bandwidth = bandwidth,

@@ -32,6 +32,8 @@ test_that("analyze_call_properties works on synthetic data", {
 
     # Frequency check: 2kHz.
     # Q05 and Q95 should be around 2kHz
+    # Peak should be exactly around 2kHz
+    expect_true(abs(res$freq_peak - 2.0) < 0.1)
     expect_true(abs(res$freq_min - 2.0) < 0.5)
     expect_true(abs(res$freq_max - 2.0) < 0.5)
 
