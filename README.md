@@ -19,7 +19,7 @@ GitHub:
 
 ``` r
 # install.packages("devtools")
-#devtools::install_github("wcornwell/ecoacoustic_utilities")
+# devtools::install_github("wcornwell/ecoacoustic_utilities")
 ```
 
 ## Functions
@@ -46,6 +46,13 @@ GitHub:
 
 ### ALA Functions
 
+- **`get_ala_sounds()`** - Download sound recordings from the Atlas of
+  Living Australia (ALA)
+  - **Use case**: Download high-quality research recordings from ALA
+    nodes
+  - Automatically handles various metadata formats and unique file
+    naming
+  - Efficiently limits searches to avoid API timeouts
 - **`get_ala_circle_occurrences()`** - Download occurrence records
   within a circular area
 
@@ -76,15 +83,15 @@ duplicates <- find_duplicate_wavs("/path/to/audio/library")
 n_sounds <- get_inat_sounds(
   "Turnix maculosus",
   place_name = "Australia",
-  download = FALSE  # Just get the count
+  download = FALSE # Just get the count
 )
-print(n_sounds)  # e.g., 450
+print(n_sounds) # e.g., 450
 
 # 2. Which species have the most recordings?
 species_summary <- get_inat_species_summary(
-  taxon_name = "Orthoptera",  # All crickets/grasshoppers
+  taxon_name = "Orthoptera", # All crickets/grasshoppers
   place_name = "Australia",
-  min_recordings = 5  # Only species with 5+ recordings
+  min_recordings = 5 # Only species with 5+ recordings
 )
 print(species_summary)
 
@@ -96,7 +103,7 @@ get_inat_sounds(
   "Turnix maculosus",
   place_name = "Australia",
   target_n = 100,
-  download = TRUE,  # Download files
+  download = TRUE, # Download files
   quality = "research"
 )
 ```
@@ -120,13 +127,13 @@ orth_summary <- get_inat_species_summary(
   place_name = "Australia",
   min_recordings = 5
 )
-#> Processing page 1 (149 observations)
+#> Processing page 1 (154 observations)
 #> No more results at page 2.
 
 # View top species
 head(orth_summary, 10)
 #>    taxon_id         scientific_name                    common_name n_recordings
-#> 1    623017   Gryllotalpa pluvialis                           <NA>           18
+#> 1    623017   Gryllotalpa pluvialis                           <NA>           23
 #> 7    397920   Teleogryllus commodus Australian Black Field Cricket           17
 #> 3    701931 Pseudorhynchus lessonii  Lesson's Mimicking Snout-nose           15
 #> 11   894013    Hexacentrus mundurra       Fierce Predatory Katydid            9
@@ -146,7 +153,18 @@ plot_inat_species_summary(
 ### ALA Workflow
 
 ``` r
-# Get ALA occurrences within a radius
+# Configure ALA email (required for galah)
+library(galah)
+galah_config(email = "your.email@example.com")
+
+# 1. Download sounds for a specific species
+get_ala_sounds(
+  "Notaden bennettii",
+  target_n = 10,
+  include_taxon_name = TRUE
+)
+
+# 2. Get ALA occurrences within a radius
 birds <- get_ala_circle_occurrences(
   taxon = "Aves",
   lat = -33.7,
@@ -161,7 +179,7 @@ birds <- get_ala_circle_occurrences(
 ``` r
 # Analyze an audio training dataset
 summary <- training_dataset_summary("/path/to/audio/dataset")
-print(summary)  # Shows class distribution, file types, sizes, durations, outliers
+print(summary) # Shows class distribution, file types, sizes, durations, outliers
 ```
 
 ## License
