@@ -44,22 +44,28 @@ get_ala_circle_occurrences <- function(taxon,
                                        radius_km = 10,
                                        email = NULL,
                                        ...) {
+  # Check API availability
+  if (!is_api_reachable("ala")) {
+    message("ALA API is unreachable. Returning empty tibble.")
+    return(dplyr::tibble())
+  }
+
   # Optionally set config here; skip if user has already done it
   if (!is.null(email)) {
     galah_config(email = email, atlas = "Australia")
   }
-  
+
   # Convert radius to bounding box (approximate)
   # 1 degree latitude ~= 111 km
   lat_buffer <- radius_km / 111
   # 1 degree longitude ~= 111 km * cos(latitude)
   lon_buffer <- radius_km / (111 * cos(lat * pi / 180))
-  
+
   min_lat <- lat - lat_buffer
   max_lat <- lat + lat_buffer
   min_lon <- lon - lon_buffer
   max_lon <- lon + lon_buffer
-  
+
   # Create WKT Polygon for the bounding box
   # WKT format: POLYGON((lon lat, lon lat, ...))
   # Create WKT Polygon for the bounding box
@@ -71,24 +77,26 @@ get_ala_circle_occurrences <- function(taxon,
     max_lon, min_lat,
     min_lon, min_lat
   )
-  
+
   # Fetch data using BBOX (returns square area)
   occurrences <- galah_call() |>
     galah_identify(taxon) |>
     galah_geolocate(wkt_polygon) |>
     atlas_occurrences(...)
-  
-  if (nrow(occurrences) == 0) return(occurrences)
-  
+
+  if (nrow(occurrences) == 0) {
+    return(occurrences)
+  }
+
   # Filter to exact circle using Haversine distance
   # R's earth radius approx 6371 km
   R <- 6371
   dlat <- (occurrences$decimalLatitude - lat) * pi / 180
   dlon <- (occurrences$decimalLongitude - lon) * pi / 180
-  a <- sin(dlat/2)^2 + cos(lat * pi / 180) * cos(occurrences$decimalLatitude * pi / 180) * sin(dlon/2)^2
-  c <- 2 * atan2(sqrt(a), sqrt(1-a))
+  a <- sin(dlat / 2)^2 + cos(lat * pi / 180) * cos(occurrences$decimalLatitude * pi / 180) * sin(dlon / 2)^2
+  c <- 2 * atan2(sqrt(a), sqrt(1 - a))
   d <- R * c
-  
+
   # Return only points within radius
   occurrences[d <= radius_km, ]
 }

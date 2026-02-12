@@ -48,18 +48,24 @@
 #' @importFrom httr GET user_agent timeout stop_for_status content
 #' @importFrom jsonlite fromJSON
 get_inat_species_summary <- function(
-    min_recordings   = 1,
-    taxon_name       = NULL,    
-    taxon_id         = NULL,    
-    place_name       = "Australia",
-    place_id         = NULL,    # if NULL, look up
-    quality_grade    = "research",
-    per_page         = 200,
-    max_pages        = 10,
-    allowed_licenses = tolower(c("cc0","cc-by","cc-by-sa","cc-by-nc","cc-by-nc-sa"))
+  min_recordings = 1,
+  taxon_name = NULL,
+  taxon_id = NULL,
+  place_name = "Australia",
+  place_id = NULL, # if NULL, look up
+  quality_grade = "research",
+  per_page = 200,
+  max_pages = 10,
+  allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa"))
 ) {
+  # Check API availability
+  if (!is_api_reachable("inat")) {
+    message("iNaturalist API is unreachable. Returning empty data frame.")
+    return(data.frame())
+  }
+
   ua <- user_agent("inat-orthoptera-sounds/1.0 (your_email@example.com)")
-  
+
   ## --- Resolve taxon_id from name if requested ---
   if (!is.null(taxon_name)) {
     tax_resp <- GET(
@@ -75,12 +81,12 @@ get_inat_species_summary <- function(
     }
     taxon_id <- tax_json$results[[1]]$id
   }
-  
+
   # Default to Orthoptera if neither provided
   if (is.null(taxon_id)) {
     taxon_id <- 47651
   }
-  
+
   ## --- Resolve place_id from name if needed ---
   if (is.null(place_id)) {
     place_resp <- GET(
@@ -96,100 +102,100 @@ get_inat_species_summary <- function(
     }
     place_id <- place_json$results[[1]]$id
   }
-  
+
   base <- "https://api.inaturalist.org/v1/observations"
-  
-  page        <- 1L
-  pages_done  <- 0L
-  
+
+  page <- 1L
+  pages_done <- 0L
+
   # per-species counters (taxon_id -> n_recordings)
-  counts   <- list()
-  tax_info <- list()  # store names by taxon_id
-  
+  counts <- list()
+  tax_info <- list() # store names by taxon_id
+
   repeat {
     if (pages_done >= max_pages) {
       message("Reached max_pages = ", max_pages, ", stopping early.")
       break
     }
-    
+
     params <- list(
       taxon_id      = taxon_id,
       place_id      = place_id,
-      sounds        = "true",         # SAME trick as your downloader
-      quality_grade = quality_grade,  # research-grade filter
+      sounds        = "true", # SAME trick as your downloader
+      quality_grade = quality_grade, # research-grade filter
       per_page      = per_page,
       page          = page,
       order         = "desc",
       order_by      = "created_at"
     )
-    
+
     resp <- GET(base, query = params, ua, timeout(60))
     stop_for_status(resp)
     j <- content(resp, as = "parsed", type = "application/json")
-    
+
     res <- j$results
     if (length(res) == 0) {
       message("No more results at page ", page, ".")
       break
     }
-    
+
     message("Processing page ", page, " (", length(res), " observations)")
     pages_done <- pages_done + 1L
-    
+
     for (obs in res) {
       # Taxon sanity check
       tx <- obs$taxon
       if (is.null(tx)) next
       if (!identical(tx$rank, "species")) next
-      
+
       tax_id_chr <- as.character(tx$id)
-      
+
       # Must have sounds list
       if (is.null(obs$sounds) || length(obs$sounds) == 0) next
-      
+
       # Count sounds in this observation that pass your license rules
       n_valid_sounds <- 0L
       for (s in obs$sounds) {
         url <- s$file_url
         if (is.null(url) || !nzchar(url)) next
-        
+
         lic <- tolower(ifelse(is.null(s$license_code), "", s$license_code))
-        
+
         # EXACT same semantics as your downloader:
         # - if license_code is non-empty and not in allowed_licenses -> skip
         # - if license_code is empty (NA/"") -> accept
         if (nzchar(lic) && !(lic %in% allowed_licenses)) next
-        
+
         n_valid_sounds <- n_valid_sounds + 1L
       }
-      
+
       if (n_valid_sounds == 0L) next
-      
+
       # init record if first time we see this species
       if (is.null(counts[[tax_id_chr]])) {
         counts[[tax_id_chr]] <- 0L
         tax_info[[tax_id_chr]] <- list(
           scientific_name = tx$name,
-          common_name     = ifelse(
+          common_name = ifelse(
             is.null(tx$preferred_common_name),
             NA_character_,
             tx$preferred_common_name
           )
         )
       }
-      
+
       counts[[tax_id_chr]] <- counts[[tax_id_chr]] + n_valid_sounds
     }
-    
+
     page <- page + 1L
-    Sys.sleep(1.1)  # be kind to the API
+    Sys.sleep(1.1) # be kind to the API
   }
-  
+
   if (length(counts) == 0) {
     message("No species with valid sounds found under these filters.")
     return(data.frame())
   }
-  
+
   # Build output data.frame
   tax_ids <- names(counts)
   df <- do.call(
@@ -197,15 +203,15 @@ get_inat_species_summary <- function(
     lapply(tax_ids, function(id) {
       info <- tax_info[[id]]
       data.frame(
-        taxon_id        = as.integer(id),
+        taxon_id = as.integer(id),
         scientific_name = info$scientific_name,
-        common_name     = info$common_name,
-        n_recordings    = counts[[id]],
+        common_name = info$common_name,
+        n_recordings = counts[[id]],
         stringsAsFactors = FALSE
       )
     })
   )
-  
+
   # Filter & sort
   df <- df[df$n_recordings >= min_recordings, ]
   df[order(-df$n_recordings), ]
