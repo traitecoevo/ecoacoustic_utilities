@@ -3,6 +3,7 @@
 S3method(print,training_dataset_summary)
 export(analyze_call_properties)
 export(biggest_files)
+export(convert_to_wav)
 export(find_duplicate_wavs)
 export(get_ala_circle_occurrences)
 export(get_ala_sounds)

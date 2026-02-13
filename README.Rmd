@@ -145,6 +145,7 @@ galah_config(email = "your.email@example.com")
 get_ala_sounds(
   "Notaden bennettii",
   target_n = 10,
+  supplier = "CSIRO", # Optional: filter for CSIRO/ANWC records
   include_taxon_name = TRUE
 )
 

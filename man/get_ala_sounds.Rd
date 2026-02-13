@@ -9,7 +9,9 @@ get_ala_sounds(
   target_n = 50,
   download = TRUE,
   out_dir = "sounds",
-  include_taxon_name = TRUE
+  include_taxon_name = TRUE,
+  supplier = c("all", "CSIRO"),
+  as_wav = FALSE
 )
 }
 \arguments{
@@ -25,9 +27,16 @@ subdirectories "audio" and "metadata.csv". Default is "sounds".}
 
 \item{include_taxon_name}{Logical. If TRUE, prepends the taxon name to the filename.
 Default is TRUE.}
+
+\item{supplier}{Character. Data supplier to filter for. Options are "all" or "CSIRO".
+If "CSIRO", specifically filters for records with institutionCode "ANWC" and
+collectionCode "Sounds". Default is "all".}
+
+\item{as_wav}{Logical. If TRUE, converts downloaded audio files to WAV format.
+Default is FALSE.}
 }
 \value{
-Integer. Total number of matching records found in ALA.
+Character. The absolute path to the metadata CSV file created/updated.
 }
 \description{
 Queries the ALA for sound recordings of a specified taxon and downloads them.
@@ -45,8 +54,8 @@ when dealing with complex media metadata.
 \examples{
 \dontrun{
 galah_config(email = "your-email@example.com")
-# Search and download up to 10 sounds
-get_ala_sounds("Teleogryllus commodus", target_n = 10)
+# Search and download up to 10 sounds as WAV
+get_ala_sounds("Teleogryllus commodus", target_n = 10, as_wav = TRUE)
 }
 
 }

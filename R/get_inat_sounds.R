@@ -20,6 +20,8 @@
 #'   observations only, or "all" for all quality grades. Default is "research".
 #' @param include_taxon_name Logical. If TRUE, prepends the taxon name to the filename
 #'   (e.g., "Genus_species_ObsID_SoundID.ext"). Default is TRUE.
+#' @param as_wav Logical. If TRUE, converts downloaded audio files to WAV format.
+#'   Default is FALSE.
 #'
 #' @return Integer. Total number of matching records found in iNaturalist.
 #'
@@ -73,7 +75,8 @@ get_inat_sounds <- function(
   allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa")),
   use_place_filter = FALSE, # set FALSE for global queries
   quality = c("research", "all"), # NEW: "research" or "all"
-  include_taxon_name = TRUE # Include species name in filename
+  include_taxon_name = TRUE, # Include species name in filename
+  as_wav = FALSE
 ) {
   quality <- match.arg(quality)
 
@@ -288,6 +291,36 @@ get_inat_sounds <- function(
     "Done. Already had %d files, downloaded %d new files into %s\n",
     already_had, downloaded, audio_dir
   ))
+
+  # Post-download conversion to WAV
+  if (as_wav && downloaded > 0) {
+    message("Converting downloaded files to WAV format...")
+    converted <- convert_to_wav(audio_dir, delete_original = TRUE)
+
+    if (length(converted) > 0) {
+      message(sprintf("Successfully converted %d files to WAV.", length(converted)))
+
+      # Update metadata CSV to reflect new filenames/paths
+      meta <- read.csv(csv_path)
+      conv_basenames_no_ext <- tools::file_path_sans_ext(basename(converted))
+
+      updated <- FALSE
+      for (i in seq_len(nrow(meta))) {
+        meta_basename_no_ext <- tools::file_path_sans_ext(basename(meta$file_path[i]))
+        if (meta_basename_no_ext %in% conv_basenames_no_ext) {
+          # Update path and extension
+          old_path <- meta$file_path[i]
+          new_path <- paste0(tools::file_path_sans_ext(old_path), ".wav")
+          meta$file_path[i] <- new_path
+          updated <- TRUE
+        }
+      }
+
+      if (updated) {
+        write.csv(meta, csv_path, row.names = FALSE)
+      }
+    }
+  }
 
   # still return the total number of matching records
   return(total_records)

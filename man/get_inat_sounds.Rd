@@ -13,7 +13,8 @@ get_inat_sounds(
   allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa")),
   use_place_filter = FALSE,
   quality = c("research", "all"),
-  include_taxon_name = TRUE
+  include_taxon_name = TRUE,
+  as_wav = FALSE
 )
 }
 \arguments{
@@ -42,6 +43,9 @@ observations only, or "all" for all quality grades. Default is "research".}
 
 \item{include_taxon_name}{Logical. If TRUE, prepends the taxon name to the filename
 (e.g., "Genus_species_ObsID_SoundID.ext"). Default is TRUE.}
+
+\item{as_wav}{Logical. If TRUE, converts downloaded audio files to WAV format.
+Default is FALSE.}
 }
 \value{
 Integer. Total number of matching records found in iNaturalist.
