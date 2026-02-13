@@ -65,7 +65,7 @@
 #' @export
 #' @importFrom httr GET user_agent timeout stop_for_status content
 #' @importFrom jsonlite fromJSON
-#' @importFrom utils write.csv write.table
+#' @importFrom utils write.csv write.table read.csv
 get_inat_sounds <- function(
   taxon_name,
   place_name = "Australia",

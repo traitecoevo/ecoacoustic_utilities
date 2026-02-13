@@ -39,7 +39,7 @@
 #' @importFrom galah galah_call galah_identify galah_filter galah_select atlas_media
 #' @importFrom httr GET write_disk stop_for_status user_agent timeout
 #' @importFrom dplyr select slice_head
-#' @importFrom utils head write.csv write.table
+#' @importFrom utils head write.csv write.table read.csv
 get_ala_sounds <- function(taxon_name,
                            target_n = 50,
                            download = TRUE,

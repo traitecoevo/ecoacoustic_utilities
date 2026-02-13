@@ -12,3 +12,7 @@
 ^\.DS_Store
 ^downloads$
 ^southern_mole_crickets\.pdf$
+^birdnet_test$
+^test_birdnet_audio\.py$
+^test_librosa\.py$
+^wav_test$
