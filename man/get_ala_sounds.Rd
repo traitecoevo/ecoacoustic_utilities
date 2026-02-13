@@ -44,12 +44,14 @@ This function improves upon basic media downloads by handling metadata
 and limiting download counts.
 }
 \details{
-You must register your email with ALA first and configure it using
-\code{galah_config(email = "your-email@example.com")}.
-
-The function uses \code{galah_select()} to limit retrieved columns, which
-avoids known issues with \code{unnest_longer()} errors in the \code{galah} package
-when dealing with complex media metadata.
+When \code{download = TRUE}, the function:
+\itemize{
+  \item Creates \code{out_dir/audio/} directory for audio files
+  \item Creates \code{out_dir/metadata_ala.csv} with record metadata
+  \item Downloads files named as \code{[Taxon_Name_]<record_id>.<ext>}
+  \item Skips files that already exist in the output directory
+  \item Automatically converts recordings to WAV if \code{as_wav = TRUE}
+}
 }
 \examples{
 \dontrun{

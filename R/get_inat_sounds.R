@@ -30,9 +30,10 @@
 #' \itemize{
 #'   \item Creates \code{out_dir/audio/} directory for audio files
 #'   \item Creates \code{out_dir/metadata.csv} with observation metadata
-#'   \item Downloads files named as \code{<observation_id>_<sound_id>.<ext>}
+#'   \item Downloads files named as \code{[Taxon_Name_]ObsID_SoundID.ext}
 #'   \item Skips files that already exist in the output directory
 #'   \item Respects API rate limits with 1.1 second delays between requests
+#'   \item Automatically converts recordings to WAV if \code{as_wav = TRUE}
 #' }
 #'
 #' @examples
@@ -58,7 +59,8 @@
 #'   "Gryllus bimaculatus",
 #'   use_place_filter = FALSE,
 #'   target_n = 100,
-#'   download = TRUE
+#'   download = TRUE,
+#'   as_wav = TRUE
 #' )
 #' }
 #'
@@ -190,17 +192,27 @@ get_inat_sounds <- function(
   if (!dir.exists(audio_dir)) dir.create(audio_dir, recursive = TRUE, showWarnings = FALSE)
 
   seen <- list.files(audio_dir)
-  already_had <- length(seen)
   downloaded <- 0
+  skipped <- 0
+  failed <- 0
+  total_checked <- 0
   page <- 1
 
+  # Warning about MP3/WAV compatibility if needed
+  if (!as_wav) {
+    message("Note: iNaturalist sounds are typically compressed formats (MP3/M4A).")
+    message("      If your downstream software requires WAV, use as_wav = TRUE or convert them manually.")
+  }
+
+  message(paste("Checking up to", target_n, "records for download..."))
+
   repeat {
-    if (downloaded >= target_n) break
+    if (total_checked >= target_n) break
 
     params <- list(
       taxon_id  = taxon_id,
       sounds    = "true",
-      per_page  = 200,
+      per_page  = min(200, target_n - total_checked),
       page      = page,
       order     = "desc",
       order_by  = "created_at"
@@ -218,13 +230,16 @@ get_inat_sounds <- function(
 
     res <- j$results
     if (length(res) == 0) {
-      message("No more results from API.")
+      if (page == 1) message("No results from API.")
       break
     }
 
     for (obs in res) {
-      if (downloaded >= target_n) break
-      if (is.null(obs$sounds) || length(obs$sounds) == 0) next
+      if (total_checked >= target_n) break
+      if (is.null(obs$sounds) || length(obs$sounds) == 0) {
+        total_checked <- total_checked + 1
+        next
+      }
 
       # Prepare taxon string for filename if requested
       tax_str <- ""
@@ -235,12 +250,19 @@ get_inat_sounds <- function(
       }
 
       for (s in obs$sounds) {
-        if (downloaded >= target_n) break
+        if (total_checked >= target_n) break
+        total_checked <- total_checked + 1
         url <- s$file_url
-        if (is.null(url) || !nzchar(url)) next
+        if (is.null(url) || !nzchar(url)) {
+          skipped <- skipped + 1
+          next
+        }
 
         lic <- tolower(ifelse(is.null(s$license_code), "", s$license_code))
-        if (nzchar(lic) && !(lic %in% allowed_licenses)) next
+        if (nzchar(lic) && !(lic %in% allowed_licenses)) {
+          skipped <- skipped + 1
+          next
+        }
 
         ext <- tolower(sub(".*(\\.mp3|\\.wav|\\.m4a|\\.ogg).*", "\\1", url))
         if (!grepl("^\\.", ext)) ext <- ".mp3"
@@ -248,7 +270,10 @@ get_inat_sounds <- function(
         # New filename format: [Taxon_Name_]ObsID_SoundID.ext
         fname <- sprintf("%s%s_%s%s", tax_str, obs$id, s$id, ext)
 
-        if (fname %in% seen) next
+        if (fname %in% seen) {
+          skipped <- skipped + 1
+          next
+        }
 
         dest <- file.path(audio_dir, fname)
         ok <- tryCatch(
@@ -257,13 +282,17 @@ get_inat_sounds <- function(
             writeBin(bin, dest)
             TRUE
           },
-          error = function(e) FALSE
+          error = function(e) {
+            message(paste("Failed to download:", url, "-", e$message))
+            if (file.exists(dest)) unlink(dest)
+            FALSE
+          }
         )
 
         if (ok) {
           downloaded <- downloaded + 1
           seen <- c(seen, fname)
-          cat(sprintf("[%d/%d] %s\n", downloaded, target_n, fname))
+          cat(sprintf("[%d/%d] %s\n", total_checked, target_n, fname))
           write.table(
             data.frame(
               observation_id = obs$id,
@@ -279,6 +308,8 @@ get_inat_sounds <- function(
             col.names = FALSE,
             append = TRUE
           )
+        } else {
+          failed <- failed + 1
         }
       }
     }
@@ -287,9 +318,9 @@ get_inat_sounds <- function(
     Sys.sleep(1.1)
   }
 
-  cat(sprintf(
-    "Done. Already had %d files, downloaded %d new files into %s\n",
-    already_had, downloaded, audio_dir
+  message(sprintf(
+    "Done. %d records checked: %d downloaded, %d skipped (included duplicates), %d failed.",
+    total_checked, downloaded, skipped, failed
   ))
 
   # Post-download conversion to WAV

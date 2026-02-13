@@ -21,12 +21,14 @@
 #' @return Character. The absolute path to the metadata CSV file created/updated.
 #'
 #' @details
-#' You must register your email with ALA first and configure it using
-#' \code{galah_config(email = "your-email@example.com")}.
-#'
-#' The function uses \code{galah_select()} to limit retrieved columns, which
-#' avoids known issues with \code{unnest_longer()} errors in the \code{galah} package
-#' when dealing with complex media metadata.
+#' When \code{download = TRUE}, the function:
+#' \itemize{
+#'   \item Creates \code{out_dir/audio/} directory for audio files
+#'   \item Creates \code{out_dir/metadata_ala.csv} with record metadata
+#'   \item Downloads files named as \code{[Taxon_Name_]<record_id>.<ext>}
+#'   \item Skips files that already exist in the output directory
+#'   \item Automatically converts recordings to WAV if \code{as_wav = TRUE}
+#' }
 #'
 #' @examples
 #' \dontrun{
@@ -227,17 +229,22 @@ get_ala_sounds <- function(taxon_name,
 
   seen <- list.files(audio_dir)
   downloaded <- 0
+  skipped <- 0
+  failed <- 0
 
   # Limit to target_n
   to_download <- head(media_data, target_n)
 
-  message(paste("Starting download of up to", nrow(to_download), "files..."))
+  message(paste("Checking", nrow(to_download), "records for download..."))
 
   for (i in seq_len(nrow(to_download))) {
     row <- to_download[i, ]
     url <- row[[url_col]]
 
-    if (is.null(url) || is.na(url) || url == "") next
+    if (is.null(url) || is.na(url) || url == "") {
+      skipped <- skipped + 1
+      next
+    }
 
     # Safe ID extraction
     rec_id <- if (!is.na(id_col) && id_col %in% names(row)) as.character(row[[id_col]]) else NA_character_
@@ -281,6 +288,7 @@ get_ala_sounds <- function(taxon_name,
     fname <- paste0(tax_str, rec_id, ext)
 
     if (fname %in% seen) {
+      skipped <- skipped + 1
       next
     }
 
@@ -303,7 +311,7 @@ get_ala_sounds <- function(taxon_name,
 
     if (ok) {
       downloaded <- downloaded + 1
-      cat(sprintf("[%d/%d] %s\n", downloaded, nrow(to_download), fname))
+      cat(sprintf("[%d/%d] %s\n", i, nrow(to_download), fname))
 
       # Append to metadata CSV
       # Safely extract lat, long, date
@@ -326,10 +334,15 @@ get_ala_sounds <- function(taxon_name,
         stringsAsFactors = FALSE
       )
       write.table(new_entry, csv_path, sep = ",", append = TRUE, col.names = FALSE, row.names = FALSE)
+    } else {
+      failed <- failed + 1
     }
   }
 
-  message(sprintf("Done. Downloaded %d new files into %s", downloaded, audio_dir))
+  message(sprintf(
+    "Done. %d records checked: %d downloaded, %d skipped (included duplicates), %d failed.",
+    nrow(to_download), downloaded, skipped, failed
+  ))
 
   # 3. Post-download conversion to WAV
   if (as_wav && downloaded > 0) {

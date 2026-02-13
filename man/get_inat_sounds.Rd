@@ -59,9 +59,10 @@ When \code{download = TRUE}, the function:
 \itemize{
   \item Creates \code{out_dir/audio/} directory for audio files
   \item Creates \code{out_dir/metadata.csv} with observation metadata
-  \item Downloads files named as \code{<observation_id>_<sound_id>.<ext>}
+  \item Downloads files named as \code{[Taxon_Name_]ObsID_SoundID.ext}
   \item Skips files that already exist in the output directory
   \item Respects API rate limits with 1.1 second delays between requests
+  \item Automatically converts recordings to WAV if \code{as_wav = TRUE}
 }
 }
 \examples{
@@ -87,7 +88,8 @@ get_inat_sounds(
   "Gryllus bimaculatus",
   use_place_filter = FALSE,
   target_n = 100,
-  download = TRUE
+  download = TRUE,
+  as_wav = TRUE
 )
 }
 
