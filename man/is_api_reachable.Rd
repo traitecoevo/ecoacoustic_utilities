@@ -9,7 +9,7 @@ is_api_reachable(api_type = c("inat", "ala"), timeout_secs = 2)
 \arguments{
 \item{api_type}{Character. Either "inat" or "ala".}
 
-\item{timeout}{Numeric. Seconds to wait before timing out. Default is 2.}
+\item{timeout_secs}{Numeric. Seconds to wait before timing out. Default is 2.}
 }
 \value{
 Logical. TRUE if reachable, FALSE otherwise.

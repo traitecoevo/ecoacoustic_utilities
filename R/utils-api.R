@@ -1,7 +1,7 @@
 #' Check if a remote API is reachable
 #'
 #' @param api_type Character. Either "inat" or "ala".
-#' @param timeout Numeric. Seconds to wait before timing out. Default is 2.
+#' @param timeout_secs Numeric. Seconds to wait before timing out. Default is 2.
 #'
 #' @return Logical. TRUE if reachable, FALSE otherwise.
 #' @importFrom httr GET status_code timeout

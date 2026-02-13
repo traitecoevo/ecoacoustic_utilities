@@ -12,12 +12,12 @@ Imports:
     ggplot2,
     jsonlite,
     galah,
+    dplyr,
     digest,
     seewave,
     tuneR,
     warbleR
 Suggests:
-    dplyr,
     pbapply,
     testthat (>= 3.0.0)
 RoxygenNote: 7.3.2

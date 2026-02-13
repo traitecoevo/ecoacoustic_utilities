@@ -10,3 +10,5 @@
 ^CODECOV_SETUP\.md$
 ^PERFORMANCE\.md$
 ^\.DS_Store
+^downloads$
+^southern_mole_crickets\.pdf$
