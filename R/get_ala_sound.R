@@ -38,7 +38,7 @@
 #' }
 #'
 #' @export
-#' @importFrom galah galah_call galah_identify galah_filter galah_select atlas_media
+#' @importFrom galah galah_call galah_identify galah_filter galah_select atlas_media atlas_counts
 #' @importFrom httr GET write_disk stop_for_status user_agent timeout
 #' @importFrom dplyr select slice_head
 #' @importFrom utils head write.csv write.table read.csv
@@ -88,14 +88,34 @@ get_ala_sounds <- function(taxon_name,
       dplyr::slice_head(n = target_n * 10) # Over-sample for R-side MIME check
   }
 
-  # atlas_media() will return a data frame with media metadata
+  # 2. Early exit check: counts
+  # We check occurrences first. If 0, we avoid the heavier media query.
+  # This prevents some HTTP 400 errors and saves significant time.
+  occ_count <- tryCatch(
+    {
+      as.numeric(atlas_counts(query)$count)
+    },
+    error = function(e) {
+      # If count fails, we proceed to try atlas_media anyway
+      NA_real_
+    }
+  )
+
+  if (!is.na(occ_count) && occ_count == 0) {
+    message("No occurrences found for this query in ALA.")
+    return(0)
+  }
+
+  # 3. Fetch media metadata
   media_data <- tryCatch(
     {
       atlas_media(query)
     },
     error = function(e) {
       if (grepl("media fields", e$message, ignore.case = TRUE)) {
-        message("No media found (ALA returned no images/sounds).")
+        message("No media found (ALA returns records but no images/sounds).")
+      } else if (grepl("400", e$message)) {
+        message("ALA API returned a 400 error. This often happens for complex media queries with 0 results.")
       } else {
         message(paste("Error fetching media from ALA:", e$message))
       }
@@ -255,12 +275,13 @@ get_ala_sounds <- function(taxon_name,
     scientific_name <- "unknown_species"
     if (!is.na(name_col) && name_col %in% names(row)) {
       scientific_name <- as.character(row[[name_col]])
+      if (is.na(scientific_name)) scientific_name <- "unknown_species"
     }
 
     if (include_taxon_name) {
       cleaned_name <- gsub("[^A-Za-z0-9_]", "", gsub(" ", "_", scientific_name))
       # Avoid doubling the name if the ID already contains it
-      if (!grepl(cleaned_name, rec_id, ignore.case = TRUE)) {
+      if (!is.na(cleaned_name) && !grepl(cleaned_name, rec_id, ignore.case = TRUE)) {
         tax_str <- paste0(cleaned_name, "_")
       }
     }
