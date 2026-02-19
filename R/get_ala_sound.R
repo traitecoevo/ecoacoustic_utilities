@@ -13,8 +13,10 @@
 #' @param include_taxon_name Logical. If TRUE, prepends the taxon name to the filename.
 #'   Default is TRUE.
 #' @param supplier Character. Data supplier to filter for. Options are "all" or "CSIRO".
-#'   If "CSIRO", specifically filters for records with institutionCode "ANWC" and
-#'   collectionCode "Sounds". Default is "all".
+#'   If "CSIRO", filters for records with institutionCode "ANWC" and
+#'   collectionCode "Sounds". A lightweight count check is performed first;
+#'   if no CSIRO records exist, the function returns 0 immediately without
+#'   downloading the full media metadata. Default is "all".
 #' @param as_wav Logical. If TRUE, converts downloaded audio files to WAV format.
 #'   Default is FALSE.
 #'
@@ -26,7 +28,14 @@
 #'   \item Creates \code{out_dir/audio/} directory for audio files
 #'   \item Creates \code{out_dir/metadata_ala.csv} with record metadata
 #'   \item Downloads files named as \code{[Taxon_Name_]<record_id>.<ext>}
-#'   \item Skips files that already exist in the output directory
+#'   \item Deduplicates media records by URL before downloading (ALA can return
+#'     multiple rows pointing to the same audio file)
+#'   \item Skips files that already exist in the output directory or have been
+#'     downloaded in the current batch
+#'   \item Uses the ALA \code{recordID} for filenames; when missing, extracts a
+#'     UUID from the audio URL for traceability back to the source record
+#'   \item Falls back to the searched \code{taxon_name} when \code{scientificName}
+#'     is missing from a record
 #'   \item Automatically converts recordings to WAV if \code{as_wav = TRUE}
 #' }
 #'
@@ -59,44 +68,50 @@ get_ala_sounds <- function(taxon_name,
   message(paste0("Searching for sounds for: ", taxon_name, "..."))
 
   # 1. Build the query
-  # We use single-pass pipelines to avoid internal galah_filter evaluation errors.
+  # We always use a broad multimedia query to avoid HTTP 400 errors from complex
+
+  # server-side filters. Supplier-specific narrowing (e.g. CSIRO) happens R-side.
   # We over-sample slightly to account for R-side MIME-type verification.
 
+  query <- galah_call() |>
+    galah_identify(taxon_name) |>
+    galah_filter(multimedia == "Sound" | multimedia == "Image") |>
+    galah_select(
+      recordID, scientificName,
+      decimalLatitude, decimalLongitude, eventDate,
+      institutionCode, collectionCode,
+      group = "media"
+    ) |>
+    dplyr::slice_head(n = target_n * 10) # Over-sample for R-side MIME check
+
+  # 2. Early exit checks
+  # We check occurrence counts first. If 0, we avoid the heavier media query.
+
+  # 2a. For CSIRO, do a cheap count with the specific filters first.
+  # atlas_counts handles these filters fine; it's only atlas_media that 400s.
   if (supplier == "CSIRO") {
-    # Specifically target CSIRO/ANWC Sounds collection on the server
-    query <- galah_call() |>
-      galah_identify(taxon_name) |>
-      galah_filter(institutionCode == "ANWC", collectionCode == "Sounds") |>
-      galah_select(
-        recordID, scientificName,
-        decimalLatitude, decimalLongitude, eventDate,
-        institutionCode, collectionCode,
-        group = "media"
-      ) |>
-      dplyr::slice_head(n = target_n * 10) # Over-sample for R-side MIME check
-  } else {
-    # Broad search for any sound or image (to catch misindexed sounds)
-    query <- galah_call() |>
-      galah_identify(taxon_name) |>
-      galah_filter(multimedia == "Sound" | multimedia == "Image") |>
-      galah_select(
-        recordID, scientificName,
-        decimalLatitude, decimalLongitude, eventDate,
-        institutionCode, collectionCode,
-        group = "media"
-      ) |>
-      dplyr::slice_head(n = target_n * 10) # Over-sample for R-side MIME check
+    csiro_count <- tryCatch(
+      {
+        csiro_query <- galah_call() |>
+          galah_identify(taxon_name) |>
+          galah_filter(institutionCode == "ANWC", collectionCode == "Sounds")
+        as.numeric(atlas_counts(csiro_query)$count)
+      },
+      error = function(e) NA_real_
+    )
+
+    if (!is.na(csiro_count) && csiro_count == 0) {
+      message("No CSIRO/ANWC sound records found for this taxon in ALA.")
+      return(0)
+    }
   }
 
-  # 2. Early exit check: counts
-  # We check occurrences first. If 0, we avoid the heavier media query.
-  # This prevents some HTTP 400 errors and saves significant time.
+  # 2b. General count check for any multimedia occurrences.
   occ_count <- tryCatch(
     {
       as.numeric(atlas_counts(query)$count)
     },
     error = function(e) {
-      # If count fails, we proceed to try atlas_media anyway
       NA_real_
     }
   )
@@ -203,6 +218,14 @@ get_ala_sounds <- function(taxon_name,
     return(0)
   }
 
+  # Deduplicate by verified audio URL (ALA returns multiple rows per occurrence)
+  dup_url <- duplicated(media_data$audio_url_verified)
+  if (any(dup_url)) {
+    n_dups <- sum(dup_url)
+    media_data <- media_data[!dup_url, ]
+    message(paste("Removed", n_dups, "duplicate audio URLs."))
+  }
+
   if (nrow(media_data) > target_n) {
     media_data <- media_data[1:target_n, ]
   }
@@ -248,6 +271,7 @@ get_ala_sounds <- function(taxon_name,
   }
 
   seen <- list.files(audio_dir)
+  seen_this_batch <- character(0)
   downloaded <- 0
   skipped <- 0
   failed <- 0
@@ -266,16 +290,24 @@ get_ala_sounds <- function(taxon_name,
       next
     }
 
-    # Safe ID extraction
+    # Safe ID extraction — try recordID, then extract from URL, then row index
     rec_id <- if (!is.na(id_col) && id_col %in% names(row)) as.character(row[[id_col]]) else NA_character_
-    if (is.na(rec_id) || rec_id == "") rec_id <- paste0("ala_row_", i)
+    if (is.na(rec_id) || rec_id == "") {
+      # Try to extract a UUID or unique hash from the audio URL
+      url_id <- sub(".*[/=]([a-f0-9]{8}[-]?[a-f0-9]{4}[-]?[a-f0-9]{4}[-]?[a-f0-9]{4}[-]?[a-f0-9]{12}).*", "\\1", url, ignore.case = TRUE)
+      if (url_id != url && nchar(url_id) >= 8) {
+        rec_id <- url_id
+      } else {
+        rec_id <- paste0("ala_row_", i)
+      }
+    }
 
     # 1. Determine taxon string for filename
     tax_str <- ""
-    scientific_name <- "unknown_species"
+    scientific_name <- taxon_name
     if (!is.na(name_col) && name_col %in% names(row)) {
       scientific_name <- as.character(row[[name_col]])
-      if (is.na(scientific_name)) scientific_name <- "unknown_species"
+      if (is.na(scientific_name)) scientific_name <- taxon_name
     }
 
     if (include_taxon_name) {
@@ -308,10 +340,11 @@ get_ala_sounds <- function(taxon_name,
 
     fname <- paste0(tax_str, rec_id, ext)
 
-    if (fname %in% seen) {
+    if (fname %in% seen || fname %in% seen_this_batch) {
       skipped <- skipped + 1
       next
     }
+    seen_this_batch <- c(seen_this_batch, fname)
 
     dest <- file.path(audio_dir, fname)
 
