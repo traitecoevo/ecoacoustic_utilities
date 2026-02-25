@@ -29,8 +29,10 @@ subdirectories "audio" and "metadata.csv". Default is "sounds".}
 Default is TRUE.}
 
 \item{supplier}{Character. Data supplier to filter for. Options are "all" or "CSIRO".
-If "CSIRO", specifically filters for records with institutionCode "ANWC" and
-collectionCode "Sounds". Default is "all".}
+If "CSIRO", filters for records with institutionCode "ANWC" and
+collectionCode "Sounds". A lightweight count check is performed first;
+if no CSIRO records exist, the function returns 0 immediately without
+downloading the full media metadata. Default is "all".}
 
 \item{as_wav}{Logical. If TRUE, converts downloaded audio files to WAV format.
 Default is FALSE.}
@@ -49,7 +51,14 @@ When \code{download = TRUE}, the function:
   \item Creates \code{out_dir/audio/} directory for audio files
   \item Creates \code{out_dir/metadata_ala.csv} with record metadata
   \item Downloads files named as \code{[Taxon_Name_]<record_id>.<ext>}
-  \item Skips files that already exist in the output directory
+  \item Deduplicates media records by URL before downloading (ALA can return
+    multiple rows pointing to the same audio file)
+  \item Skips files that already exist in the output directory or have been
+    downloaded in the current batch
+  \item Uses the ALA \code{recordID} for filenames; when missing, extracts a
+    UUID from the audio URL for traceability back to the source record
+  \item Falls back to the searched \code{taxon_name} when \code{scientificName}
+    is missing from a record
   \item Automatically converts recordings to WAV if \code{as_wav = TRUE}
 }
 }
