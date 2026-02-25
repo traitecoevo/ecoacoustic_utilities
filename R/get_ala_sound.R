@@ -122,21 +122,57 @@ get_ala_sounds <- function(taxon_name,
   }
 
   # 3. Fetch media metadata
-  media_data <- tryCatch(
-    {
-      atlas_media(query)
-    },
-    error = function(e) {
-      if (grepl("media fields", e$message, ignore.case = TRUE)) {
-        message("No media found (ALA returns records but no images/sounds).")
-      } else if (grepl("400", e$message)) {
-        message("ALA API returned a 400 error. This often happens for complex media queries with 0 results.")
-      } else {
-        message(paste("Error fetching media from ALA:", e$message))
+  # atlas_media() can fail with "can't recycle input" errors when the ALA
+
+  # returns rows with ragged list columns (e.g., 3 media items for one record
+  # but 2 for another). Retry with progressively smaller queries to skip past
+  # the problematic rows.
+  media_data <- data.frame()
+  current_n <- target_n * 10
+  min_n <- target_n # Don't go below the actual target
+  fetch_success <- FALSE
+
+  while (!fetch_success && current_n >= min_n) {
+    retry_query <- galah_call() |>
+      galah_identify(taxon_name) |>
+      galah_filter(multimedia == "Sound" | multimedia == "Image") |>
+      galah_select(
+        recordID, scientificName,
+        decimalLatitude, decimalLongitude, eventDate,
+        institutionCode, collectionCode,
+        group = "media"
+      ) |>
+      dplyr::slice_head(n = current_n)
+
+    media_data <- tryCatch(
+      {
+        result <- atlas_media(retry_query)
+        fetch_success <- TRUE
+        result
+      },
+      error = function(e) {
+        if (grepl("recycle", e$message, ignore.case = TRUE)) {
+          message(sprintf(
+            "ALA data has ragged columns at n=%d. Retrying with n=%d...",
+            current_n, current_n %/% 2
+          ))
+        } else if (grepl("media fields", e$message, ignore.case = TRUE)) {
+          message("No media found (ALA returns records but no images/sounds).")
+          fetch_success <<- TRUE
+        } else if (grepl("400", e$message)) {
+          message("ALA API returned a 400 error. This often happens for complex media queries with 0 results.")
+          fetch_success <<- TRUE
+        } else {
+          message(paste("Error fetching media from ALA:", e$message))
+          fetch_success <<- TRUE
+        }
+        return(data.frame())
       }
-      return(data.frame())
+    )
+    if (!fetch_success) {
+      current_n <- current_n %/% 2
     }
-  )
+  }
 
   # --- Column Mapping for Metadata ---
   cols <- names(media_data)

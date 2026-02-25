@@ -109,6 +109,11 @@ get_inat_sounds <- function(
     stop("No taxon found for name: ", taxon_name)
   }
   taxon_id <- tax_json$results[[1]]$id
+  resolved_taxon_name <- if (!is.null(tax_json$results[[1]]$name)) {
+    tax_json$results[[1]]$name
+  } else {
+    taxon_name
+  }
 
   ## --- Helper: resolve place name to ID (only if filtering by place) ---
   place_id <- NULL
@@ -243,9 +248,9 @@ get_inat_sounds <- function(
 
       # Prepare taxon string for filename if requested
       tax_str <- ""
-      if (include_taxon_name && !is.null(obs$taxon$name)) {
-        # Sanitize taxon name: replace spaces with underscores, remove non-alphanumeric
-        cleaned_name <- gsub("[^A-Za-z0-9_]", "", gsub(" ", "_", obs$taxon$name))
+      if (include_taxon_name && nzchar(resolved_taxon_name)) {
+        # Use the API-resolved taxon name (consistent across all files)
+        cleaned_name <- gsub("[^A-Za-z0-9_]", "", gsub(" ", "_", resolved_taxon_name))
         tax_str <- paste0(cleaned_name, "_")
       }
 
@@ -297,7 +302,7 @@ get_inat_sounds <- function(
             data.frame(
               observation_id = obs$id,
               sound_id       = s$id,
-              taxon_name     = ifelse(is.null(obs$taxon$name), NA, obs$taxon$name),
+              taxon_name     = resolved_taxon_name,
               file_url       = url,
               file_path      = dest,
               license_code   = lic
