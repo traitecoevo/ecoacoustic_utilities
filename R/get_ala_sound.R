@@ -47,7 +47,7 @@
 #' }
 #'
 #' @export
-#' @importFrom galah galah_call galah_identify galah_filter galah_select atlas_media atlas_counts
+#' @importFrom galah galah_call galah_identify galah_filter galah_select atlas_media atlas_counts atlas_occurrences
 #' @importFrom httr GET write_disk stop_for_status user_agent timeout
 #' @importFrom dplyr select slice_head
 #' @importFrom utils head write.csv write.table read.csv
@@ -67,112 +67,58 @@ get_ala_sounds <- function(taxon_name,
 
   message(paste0("Searching for sounds for: ", taxon_name, "..."))
 
-  # 1. Build the query
-  # We always use a broad multimedia query to avoid HTTP 400 errors from complex
-
-  # server-side filters. Supplier-specific narrowing (e.g. CSIRO) happens R-side.
-  # We over-sample slightly to account for R-side MIME-type verification.
-
-  query <- galah_call() |>
-    galah_identify(taxon_name) |>
-    galah_filter(multimedia == "Sound" | multimedia == "Image") |>
-    galah_select(
-      recordID, scientificName,
-      decimalLatitude, decimalLongitude, eventDate,
-      institutionCode, collectionCode,
-      group = "media"
-    ) |>
-    dplyr::slice_head(n = target_n * 10) # Over-sample for R-side MIME check
-
-  # 2. Early exit checks
-  # We check occurrence counts first. If 0, we avoid the heavier media query.
-
-  # 2a. For CSIRO, do a cheap count with the specific filters first.
-  # atlas_counts handles these filters fine; it's only atlas_media that 400s.
-  if (supplier == "CSIRO") {
-    csiro_count <- tryCatch(
-      {
-        csiro_query <- galah_call() |>
-          galah_identify(taxon_name) |>
-          galah_filter(institutionCode == "ANWC", collectionCode == "Sounds")
-        as.numeric(atlas_counts(csiro_query)$count)
-      },
-      error = function(e) NA_real_
-    )
-
-    if (!is.na(csiro_count) && csiro_count == 0) {
-      message("No CSIRO/ANWC sound records found for this taxon in ALA.")
-      return(0)
-    }
-  }
-
-  # 2b. General count check for any multimedia occurrences.
-  occ_count <- tryCatch(
+  # 1. Build and fetch occurrence records first
+  # This avoids triggering the ALA download queue for massive datasets
+  # and allows server-side filtering for CSIRO/ANWC records.
+  # 2. Fetch occurrences
+  occ_data <- tryCatch(
     {
-      as.numeric(atlas_counts(query)$count)
+      galah_call() |>
+        galah_identify(taxon_name) |>
+        galah_filter(multimedia == "Sound" | multimedia == "Image") |>
+        (function(q) {
+          if (supplier == "CSIRO") {
+            q <- galah_filter(q, institutionCode == "ANWC", collectionCode == "Sounds")
+          }
+          q
+        })() |>
+        galah_select(
+          recordID, scientificName,
+          decimalLatitude, decimalLongitude, eventDate,
+          institutionCode, collectionCode
+        ) |>
+        slice_head(n = target_n * 10) |>
+        atlas_occurrences()
     },
     error = function(e) {
-      NA_real_
+      if (grepl("email", e$message, ignore.case = TRUE)) {
+        message("ALA requires a registered email for this query. Use galah_config(email = 'your@email.com')")
+      } else {
+        message(paste("Error fetching occurrences from ALA:", e$message))
+      }
+      return(data.frame())
     }
   )
 
-  if (!is.na(occ_count) && occ_count == 0) {
-    message("No occurrences found for this query in ALA.")
+  if (nrow(occ_data) == 0) {
+    message("No recordings found matching the specified filter criteria.")
     return(0)
   }
 
-  # 3. Fetch media metadata
-  # atlas_media() can fail with "can't recycle input" errors when the ALA
 
-  # returns rows with ragged list columns (e.g., 3 media items for one record
-  # but 2 for another). Retry with progressively smaller queries to skip past
-  # the problematic rows.
-  media_data <- data.frame()
-  current_n <- target_n * 10
-  min_n <- target_n # Don't go below the actual target
-  fetch_success <- FALSE
+  # 3. Fetch media metadata for these specific occurrences
 
-  while (!fetch_success && current_n >= min_n) {
-    retry_query <- galah_call() |>
-      galah_identify(taxon_name) |>
-      galah_filter(multimedia == "Sound" | multimedia == "Image") |>
-      galah_select(
-        recordID, scientificName,
-        decimalLatitude, decimalLongitude, eventDate,
-        institutionCode, collectionCode,
-        group = "media"
-      ) |>
-      dplyr::slice_head(n = current_n)
-
-    media_data <- tryCatch(
-      {
-        result <- atlas_media(retry_query)
-        fetch_success <- TRUE
-        result
-      },
-      error = function(e) {
-        if (grepl("recycle", e$message, ignore.case = TRUE)) {
-          message(sprintf(
-            "ALA data has ragged columns at n=%d. Retrying with n=%d...",
-            current_n, current_n %/% 2
-          ))
-        } else if (grepl("media fields", e$message, ignore.case = TRUE)) {
-          message("No media found (ALA returns records but no images/sounds).")
-          fetch_success <<- TRUE
-        } else if (grepl("400", e$message)) {
-          message("ALA API returned a 400 error. This often happens for complex media queries with 0 results.")
-          fetch_success <<- TRUE
-        } else {
-          message(paste("Error fetching media from ALA:", e$message))
-          fetch_success <<- TRUE
-        }
-        return(data.frame())
-      }
-    )
-    if (!fetch_success) {
-      current_n <- current_n %/% 2
+  # Passing the occurrence data frame to atlas_media is much more robust
+  media_data <- tryCatch(
+    {
+      atlas_media(occ_data)
+    },
+    error = function(e) {
+      message(paste("Error fetching media metadata from ALA:", e$message))
+      return(data.frame())
     }
-  }
+  )
+
 
   # --- Column Mapping for Metadata ---
   cols <- names(media_data)

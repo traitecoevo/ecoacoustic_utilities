@@ -91,6 +91,40 @@ test_that("get_ala_circle_occurrences has correct parameter structure", {
   expect_equal(formals(get_ala_circle_occurrences)$radius_km, 10)
 })
 
+test_that("get_inat_images has correct parameter structure", {
+  # Test that function has expected parameters
+  params <- names(formals(get_inat_images))
+
+  expect_true("taxon_name" %in% params)
+  expect_true("place_name" %in% params)
+  expect_true("target_n" %in% params)
+  expect_true("download" %in% params)
+  expect_true("out_dir" %in% params)
+  expect_true("use_place_filter" %in% params)
+  expect_true("quality" %in% params)
+  expect_true("include_taxon_name" %in% params)
+  expect_true("image_size" %in% params)
+
+  # Test defaults
+  defaults <- formals(get_inat_images)
+  expect_equal(defaults$target_n, 300)
+  expect_equal(defaults$download, TRUE)
+  expect_equal(defaults$use_place_filter, FALSE)
+  expect_equal(defaults$place_name, "Australia")
+  expect_equal(defaults$include_taxon_name, TRUE)
+  expect_equal(defaults$out_dir, "images")
+})
+
+test_that("get_inat_images image_size parameter has valid options", {
+  defaults <- formals(get_inat_images)
+  size_options <- eval(defaults$image_size)
+  expect_true("original" %in% size_options)
+  expect_true("large" %in% size_options)
+  expect_true("medium" %in% size_options)
+  expect_true("small" %in% size_options)
+  expect_equal(size_options[1], "original") # "original" is the default
+})
+
 # Note: Full integration tests for API functions would require:
 # 1. Network access
 # 2. Valid API credentials

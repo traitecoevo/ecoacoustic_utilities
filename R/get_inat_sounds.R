@@ -182,7 +182,11 @@ get_inat_sounds <- function(
       data.frame(
         observation_id = integer(),
         sound_id = integer(),
-        taxon_name = character(), # Added taxon_name to metadata
+        taxon_name = character(),
+        observed_taxon_name = character(),
+        observed_on = character(),
+        latitude = numeric(),
+        longitude = numeric(),
         file_url = character(),
         file_path = character(),
         license_code = character(),
@@ -246,6 +250,22 @@ get_inat_sounds <- function(
         next
       }
 
+      # Extract observation-level metadata
+      obs_taxon_name <- tryCatch(
+        if (!is.null(obs$taxon$name)) obs$taxon$name else NA_character_,
+        error = function(e) NA_character_
+      )
+      obs_date <- if (!is.null(obs$observed_on)) obs$observed_on else NA_character_
+      obs_lat <- NA_real_
+      obs_lng <- NA_real_
+      if (!is.null(obs$location) && nzchar(obs$location)) {
+        loc_parts <- strsplit(obs$location, ",")[[1]]
+        if (length(loc_parts) == 2) {
+          obs_lat <- as.numeric(loc_parts[1])
+          obs_lng <- as.numeric(loc_parts[2])
+        }
+      }
+
       # Prepare taxon string for filename if requested
       tax_str <- ""
       if (include_taxon_name && nzchar(resolved_taxon_name)) {
@@ -300,12 +320,16 @@ get_inat_sounds <- function(
           cat(sprintf("[%d/%d] %s\n", total_checked, target_n, fname))
           write.table(
             data.frame(
-              observation_id = obs$id,
-              sound_id       = s$id,
-              taxon_name     = resolved_taxon_name,
-              file_url       = url,
-              file_path      = dest,
-              license_code   = lic
+              observation_id      = obs$id,
+              sound_id            = s$id,
+              taxon_name          = resolved_taxon_name,
+              observed_taxon_name = obs_taxon_name,
+              observed_on         = obs_date,
+              latitude            = obs_lat,
+              longitude           = obs_lng,
+              file_url            = url,
+              file_path           = dest,
+              license_code        = lic
             ),
             csv_path,
             sep = ",",
