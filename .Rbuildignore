@@ -16,3 +16,7 @@
 ^test_birdnet_audio\.py$
 ^test_librosa\.py$
 ^wav_test$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^images$

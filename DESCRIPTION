@@ -5,6 +5,9 @@ Authors@R: person("WK", "Cornwell", email = "wcornwell@gmail.com", role = c("aut
 Description: Utilities for downloading and analyzing ecoacoustic data.
 License: MIT + file LICENSE
 Encoding: UTF-8
+URL: https://wcornwell.github.io/ecoacoustic_utilities/,
+    https://github.com/wcornwell/ecoacoustic_utilities
+BugReports: https://github.com/wcornwell/ecoacoustic_utilities/issues
 Depends:
     R (>= 4.1.0)
 Imports:
@@ -20,6 +23,7 @@ Imports:
 Suggests:
     av,
     pbapply,
+    pkgdown,
     testthat (>= 3.0.0)
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3

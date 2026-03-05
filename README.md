@@ -7,6 +7,7 @@
 
 [![R-CMD-check](https://github.com/wcornwell/ecoacoustic_utilities/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wcornwell/ecoacoustic_utilities/actions/workflows/R-CMD-check.yaml)
 [![test-coverage](https://codecov.io/gh/wcornwell/ecoacoustic_utilities/branch/main/graph/badge.svg)](https://app.codecov.io/gh/wcornwell/ecoacoustic_utilities?branch=main)
+[![pkgdown](https://github.com/wcornwell/ecoacoustic_utilities/actions/workflows/pkgdown.yaml/badge.svg)](https://wcornwell.github.io/ecoacoustic_utilities/)
 <!-- badges: end -->
 
 Utilities for downloading and analyzing ecoacoustic data from
@@ -32,6 +33,14 @@ GitHub:
     sounds
   - With `download=TRUE`: Download up to N audio files to local
     directory
+- **`get_inat_images()`** - Download images from iNaturalist
+  - **Use case**: Download observation photos for a specific taxon
+  - With `download=FALSE`: Get quick count of total observations with
+    photos
+  - With `download=TRUE`: Download up to N images to local directory
+  - Supports `image_size`: “original” (default, up to 2048px), “large”,
+    “medium”, or “small”
+  - Metadata includes observed taxon, date, latitude, and longitude
 - **`get_inat_species_summary()`** - Get species-level summary of sound
   recordings
   - **Use case**: Identify which species have the most recordings in a
@@ -108,6 +117,37 @@ get_inat_sounds(
 )
 ```
 
+### Downloading Images from iNaturalist
+
+``` r
+# 1. Quick check: How many observation photos exist?
+n_photos <- get_inat_images(
+  "Cacatua galerita",
+  place_name = "Australia",
+  download = FALSE # Just get the count
+)
+print(n_photos)
+
+# 2. Download original-size images (default)
+get_inat_images(
+  "Cacatua galerita",
+  place_name = "Australia",
+  target_n = 50,
+  download = TRUE,
+  quality = "research"
+)
+# Files saved to images/images/, metadata in images/metadata.csv
+# Metadata includes: observed taxon name, date, lat, long, license, etc.
+
+# 3. Download medium-sized images globally (no place filter)
+get_inat_images(
+  "Danaus plexippus",
+  use_place_filter = FALSE,
+  target_n = 100,
+  image_size = "medium" # Smaller files (~500px)
+)
+```
+
 ### Example: Australian Orthoptera
 
 Here’s a real example analyzing cricket and grasshopper recordings in
@@ -127,18 +167,18 @@ orth_summary <- get_inat_species_summary(
   place_name = "Australia",
   min_recordings = 5
 )
-#> Processing page 1 (154 observations)
+#> Processing page 1 (160 observations)
 #> No more results at page 2.
 
 # View top species
 head(orth_summary, 10)
 #>    taxon_id         scientific_name                    common_name n_recordings
-#> 1    623017   Gryllotalpa pluvialis                           <NA>           23
-#> 7    397920   Teleogryllus commodus Australian Black Field Cricket           17
-#> 3    701931 Pseudorhynchus lessonii  Lesson's Mimicking Snout-nose           15
-#> 11   894013    Hexacentrus mundurra       Fierce Predatory Katydid            9
-#> 5    569917   Gryllotalpa australis          Southern Mole Cricket            6
-#> 6    633763      Oecanthus angustus            Common Tree Cricket            5
+#> 2    623017   Gryllotalpa pluvialis                           <NA>           26
+#> 8    397920   Teleogryllus commodus Australian Black Field Cricket           18
+#> 4    701931 Pseudorhynchus lessonii  Lesson's Mimicking Snout-nose           15
+#> 12   894013    Hexacentrus mundurra       Fierce Predatory Katydid            9
+#> 6    569917   Gryllotalpa australis          Southern Mole Cricket            6
+#> 7    633763      Oecanthus angustus            Common Tree Cricket            5
 
 # Create visualization
 plot_inat_species_summary(
@@ -161,6 +201,7 @@ galah_config(email = "your.email@example.com")
 get_ala_sounds(
   "Notaden bennettii",
   target_n = 10,
+  supplier = "CSIRO", # Optional: filter for CSIRO/ANWC records
   include_taxon_name = TRUE
 )
 

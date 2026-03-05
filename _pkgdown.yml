@@ -1,0 +1,38 @@
+url: https://wcornwell.github.io/ecoacoustic_utilities/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left:  [intro, reference, articles]
+    right: [search, github]
+  components:
+    github:
+      icon: fa-github
+      href: https://github.com/wcornwell/ecoacoustic_utilities/
+
+reference:
+  - title: "iNaturalist"
+    desc: "Download sounds and images from iNaturalist"
+    contents:
+      - get_inat_sounds
+      - get_inat_images
+      - get_inat_species_summary
+      - plot_inat_species_summary
+
+  - title: "Atlas of Living Australia"
+    desc: "Download data from ALA"
+    contents:
+      - get_ala_sounds
+      - get_ala_circle_occurrences
+
+  - title: "Audio Utilities"
+    desc: "Tools for managing and analyzing audio files"
+    contents:
+      - analyze_call_properties
+      - convert_to_wav
+      - biggest_files
+      - find_duplicate_wavs
+      - training_dataset_summary
+      - print.training_dataset_summary

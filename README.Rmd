@@ -18,6 +18,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/wcornwell/ecoacoustic_utilities/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wcornwell/ecoacoustic_utilities/actions/workflows/R-CMD-check.yaml)
 [![test-coverage](https://codecov.io/gh/wcornwell/ecoacoustic_utilities/branch/main/graph/badge.svg)](https://app.codecov.io/gh/wcornwell/ecoacoustic_utilities?branch=main)
+[![pkgdown](https://github.com/wcornwell/ecoacoustic_utilities/actions/workflows/pkgdown.yaml/badge.svg)](https://wcornwell.github.io/ecoacoustic_utilities/)
 <!-- badges: end -->
 
 Utilities for downloading and analyzing ecoacoustic data from iNaturalist and the Atlas of Living Australia (ALA).
@@ -39,6 +40,13 @@ You can install the development version of EcoacousticUtilities from GitHub:
   - **Use case**: Download actual audio files for a specific taxon
   - With `download=FALSE`: Get quick count of total observations with sounds
   - With `download=TRUE`: Download up to N audio files to local directory
+
+- **`get_inat_images()`** - Download images from iNaturalist
+  - **Use case**: Download observation photos for a specific taxon
+  - With `download=FALSE`: Get quick count of total observations with photos
+  - With `download=TRUE`: Download up to N images to local directory
+  - Supports `image_size`: "original" (default, up to 2048px), "large", "medium", or "small"
+  - Metadata includes observed taxon, date, latitude, and longitude
   
 - **`get_inat_species_summary()`** - Get species-level summary of sound recordings
   - **Use case**: Identify which species have the most recordings in a taxon/region
@@ -105,6 +113,37 @@ get_inat_sounds(
   target_n = 100,
   download = TRUE, # Download files
   quality = "research"
+)
+```
+
+### Downloading Images from iNaturalist
+
+```{r eval=FALSE}
+# 1. Quick check: How many observation photos exist?
+n_photos <- get_inat_images(
+  "Cacatua galerita",
+  place_name = "Australia",
+  download = FALSE # Just get the count
+)
+print(n_photos)
+
+# 2. Download original-size images (default)
+get_inat_images(
+  "Cacatua galerita",
+  place_name = "Australia",
+  target_n = 50,
+  download = TRUE,
+  quality = "research"
+)
+# Files saved to images/images/, metadata in images/metadata.csv
+# Metadata includes: observed taxon name, date, lat, long, license, etc.
+
+# 3. Download medium-sized images globally (no place filter)
+get_inat_images(
+  "Danaus plexippus",
+  use_place_filter = FALSE,
+  target_n = 100,
+  image_size = "medium" # Smaller files (~500px)
 )
 ```
 
