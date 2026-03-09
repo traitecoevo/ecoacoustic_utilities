@@ -7,7 +7,7 @@
 
 [![R-CMD-check](https://github.com/wcornwell/ecoacoustic_utilities/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wcornwell/ecoacoustic_utilities/actions/workflows/R-CMD-check.yaml)
 [![test-coverage](https://codecov.io/gh/wcornwell/ecoacoustic_utilities/branch/main/graph/badge.svg)](https://app.codecov.io/gh/wcornwell/ecoacoustic_utilities?branch=main)
-[![pkgdown](https://github.com/wcornwell/ecoacoustic_utilities/actions/workflows/pkgdown.yaml/badge.svg)](https://wcornwell.github.io/ecoacoustic_utilities/)
+[![pkgdown](https://github.com/wcornwell/ecoacoustic_utilities/actions/workflows/pkgdown.yaml/badge.svg)](https://traitecoevo.github.io/ecoacoustic_utilities/)
 <!-- badges: end -->
 
 Utilities for downloading and analyzing ecoacoustic data from

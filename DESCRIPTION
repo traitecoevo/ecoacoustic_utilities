@@ -5,7 +5,7 @@ Authors@R: person("WK", "Cornwell", email = "wcornwell@gmail.com", role = c("aut
 Description: Utilities for downloading and analyzing ecoacoustic data.
 License: MIT + file LICENSE
 Encoding: UTF-8
-URL: https://wcornwell.github.io/ecoacoustic_utilities/,
+URL: https://traitecoevo.github.io/ecoacoustic_utilities/,
     https://github.com/wcornwell/ecoacoustic_utilities
 BugReports: https://github.com/wcornwell/ecoacoustic_utilities/issues
 Depends:
