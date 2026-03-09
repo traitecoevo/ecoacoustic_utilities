@@ -67,57 +67,30 @@ get_ala_sounds <- function(taxon_name,
 
   message(paste0("Searching for sounds for: ", taxon_name, "..."))
 
-  # 1. Build and fetch occurrence records first
-  # This avoids triggering the ALA download queue for massive datasets
-  # and allows server-side filtering for CSIRO/ANWC records.
-  # 2. Fetch occurrences
-  occ_data <- tryCatch(
+  # 1. Fetch media metadata directly using the modern galah pipeline (v2.0+)
+  # This is much more efficient and avoids the "data_request" error
+  media_data <- tryCatch(
     {
       galah_call() |>
         galah_identify(taxon_name) |>
-        galah_filter(multimedia == "Sound" | multimedia == "Image") |>
-        (function(q) {
-          if (supplier == "CSIRO") {
-            q <- galah_filter(q, institutionCode == "ANWC", collectionCode == "Sounds")
-          }
-          q
-        })() |>
-        galah_select(
-          recordID, scientificName,
-          decimalLatitude, decimalLongitude, eventDate,
-          institutionCode, collectionCode
-        ) |>
-        slice_head(n = target_n * 10) |>
-        atlas_occurrences()
+        galah_filter(multimedia == "Sound") |>
+        slice_head(n = target_n) |>
+        atlas_media()
     },
     error = function(e) {
       if (grepl("email", e$message, ignore.case = TRUE)) {
         message("ALA requires a registered email for this query. Use galah_config(email = 'your@email.com')")
       } else {
-        message(paste("Error fetching occurrences from ALA:", e$message))
+        message(paste("Error fetching media metadata from ALA:", e$message))
       }
       return(data.frame())
     }
   )
 
-  if (nrow(occ_data) == 0) {
+  if (nrow(media_data) == 0) {
     message("No recordings found matching the specified filter criteria.")
     return(0)
   }
-
-
-  # 3. Fetch media metadata for these specific occurrences
-
-  # Passing the occurrence data frame to atlas_media is much more robust
-  media_data <- tryCatch(
-    {
-      atlas_media(occ_data)
-    },
-    error = function(e) {
-      message(paste("Error fetching media metadata from ALA:", e$message))
-      return(data.frame())
-    }
-  )
 
 
   # --- Column Mapping for Metadata ---
