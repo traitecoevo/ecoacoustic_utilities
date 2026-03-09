@@ -2,7 +2,7 @@
 
 Creates an informative bar plot showing the number of sound recordings
 per species from the output of
-[`get_inat_species_summary()`](https://wcornwell.github.io/ecoacoustic_utilities/reference/get_inat_species_summary.md).
+[`get_inat_species_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_species_summary.md).
 
 ## Usage
 
@@ -21,7 +21,7 @@ plot_inat_species_summary(
 - species_summary:
 
   Data.frame. Output from
-  [`get_inat_species_summary()`](https://wcornwell.github.io/ecoacoustic_utilities/reference/get_inat_species_summary.md).
+  [`get_inat_species_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_species_summary.md).
   Must contain columns: scientific_name (or common_name) and
   n_recordings.
 

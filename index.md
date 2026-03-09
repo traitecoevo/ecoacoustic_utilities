@@ -17,14 +17,14 @@ GitHub:
 
 ### iNaturalist Functions
 
-- **[`get_inat_sounds()`](https://wcornwell.github.io/ecoacoustic_utilities/reference/get_inat_sounds.md)** -
+- **[`get_inat_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_sounds.md)** -
   Download sound recordings from iNaturalist
   - **Use case**: Download actual audio files for a specific taxon
   - With `download=FALSE`: Get quick count of total observations with
     sounds
   - With `download=TRUE`: Download up to N audio files to local
     directory
-- **[`get_inat_images()`](https://wcornwell.github.io/ecoacoustic_utilities/reference/get_inat_images.md)** -
+- **[`get_inat_images()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_images.md)** -
   Download images from iNaturalist
   - **Use case**: Download observation photos for a specific taxon
   - With `download=FALSE`: Get quick count of total observations with
@@ -33,14 +33,14 @@ GitHub:
   - Supports `image_size`: “original” (default, up to 2048px), “large”,
     “medium”, or “small”
   - Metadata includes observed taxon, date, latitude, and longitude
-- **[`get_inat_species_summary()`](https://wcornwell.github.io/ecoacoustic_utilities/reference/get_inat_species_summary.md)** -
+- **[`get_inat_species_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_species_summary.md)** -
   Get species-level summary of sound recordings
   - **Use case**: Identify which species have the most recordings in a
     taxon/region
   - Returns data.frame with counts per species (taxon_id,
     scientific_name, common_name, n_recordings)
   - Useful for finding well-documented species before downloading
-- **[`plot_inat_species_summary()`](https://wcornwell.github.io/ecoacoustic_utilities/reference/plot_inat_species_summary.md)** -
+- **[`plot_inat_species_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/plot_inat_species_summary.md)** -
   Visualize species summary data
   - **Use case**: Create publication-ready plots of species recording
     counts
@@ -48,23 +48,23 @@ GitHub:
 
 ### ALA Functions
 
-- **[`get_ala_sounds()`](https://wcornwell.github.io/ecoacoustic_utilities/reference/get_ala_sounds.md)** -
+- **[`get_ala_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_ala_sounds.md)** -
   Download sound recordings from the Atlas of Living Australia (ALA)
   - **Use case**: Download high-quality research recordings from ALA
     nodes
   - Automatically handles various metadata formats and unique file
     naming
   - Efficiently limits searches to avoid API timeouts
-- **[`get_ala_circle_occurrences()`](https://wcornwell.github.io/ecoacoustic_utilities/reference/get_ala_circle_occurrences.md)** -
+- **[`get_ala_circle_occurrences()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_ala_circle_occurrences.md)** -
   Download occurrence records within a circular area
 
 ### Utility Functions
 
-- **[`biggest_files()`](https://wcornwell.github.io/ecoacoustic_utilities/reference/biggest_files.md)** -
+- **[`biggest_files()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/biggest_files.md)** -
   Find the largest files in a directory
-- **[`find_duplicate_wavs()`](https://wcornwell.github.io/ecoacoustic_utilities/reference/find_duplicate_wavs.md)** -
+- **[`find_duplicate_wavs()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/find_duplicate_wavs.md)** -
   Detect duplicate WAV files by content hash
-- **[`training_dataset_summary()`](https://wcornwell.github.io/ecoacoustic_utilities/reference/training_dataset_summary.md)** -
+- **[`training_dataset_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/training_dataset_summary.md)** -
   Comprehensive analysis of audio training datasets
 
 ## Example Usage

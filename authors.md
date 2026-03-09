@@ -11,12 +11,12 @@ Source:
 
 Cornwell W (2026). *EcoacousticUtilities: Utilities for Ecoacoustics*. R
 package version 0.1.0,
-<https://wcornwell.github.io/ecoacoustic_utilities/>.
+<https://traitecoevo.github.io/ecoacoustic_utilities/>.
 
     @Manual{,
       title = {EcoacousticUtilities: Utilities for Ecoacoustics},
       author = {WK Cornwell},
       year = {2026},
       note = {R package version 0.1.0},
-      url = {https://wcornwell.github.io/ecoacoustic_utilities/},
+      url = {https://traitecoevo.github.io/ecoacoustic_utilities/},
     }
