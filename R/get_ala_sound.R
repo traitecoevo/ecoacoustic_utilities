@@ -67,78 +67,93 @@ get_ala_sounds <- function(taxon_name,
 
   message(paste0("Searching for sounds for: ", taxon_name, "..."))
 
-  # 1. Primary Fetch: Try a single standard data_request pipeline (v2.0+)
-  # We fetch 10x more records than target_n to account for the multiple ways
-  # ALA represents sounds and to ensure we find enough valid audio URLs.
-  # This "buffer" handles edge cases where many metadata records are empty or malformed.
-  message(sprintf("Fetching up to %d potential records...", target_n * 10))
-  media_data <- tryCatch(
+  # 1. Primary Fetch: Get occurrences first
+  # Use a smarter buffer: target + 50% + 20 (handles small numbers and large numbers)
+  buffer_size <- ceiling(target_n * 1.5) + 20
+  message(sprintf("Fetching up to %d potential records...", buffer_size))
+
+  occ_data <- tryCatch(
     {
       galah_call() |>
         galah_identify(taxon_name) |>
         galah_filter(multimedia == "Sound") |>
-        slice_head(n = target_n * 10) |>
-        atlas_media()
+        slice_head(n = buffer_size) |>
+        atlas_occurrences()
     },
     error = function(e) {
-      # Fallback: Manual Occurrence -> Media loop
-      # Required if the batch pipeline causes unnesting or "recycling" errors.
-      message("Batch media fetch failed (", e$message, "). Trying isolated record fetch...")
-
-      occ_data <- tryCatch(
-        {
-          galah_call() |>
-            galah_identify(taxon_name) |>
-            galah_filter(multimedia == "Sound") |>
-            slice_head(n = target_n * 10) |>
-            atlas_occurrences()
-        },
-        error = function(e2) {
-          if (grepl("email|401|403", e2$message, ignore.case = TRUE)) {
-            message("ALA requires a registered email for this query. Use galah_config(email = 'your@email.com')")
-          } else {
-            message(paste("Error fetching occurrences from ALA:", e2$message))
-          }
-          return(data.frame())
-        }
-      )
-
-      if (nrow(occ_data) == 0) {
-        return(data.frame())
-      }
-
-      message(sprintf("Found %d occurrences. Fetching metadata for each record...", nrow(occ_data)))
-      fetch_results <- list()
-      for (i in seq_len(nrow(occ_data))) {
-        # Using atlas_media(occ_data[i, ]) is the most robust way to get media for a specific record
-        # galah handles the ID extraction internally from the data frame row.
-        row_media <- tryCatch(
-          {
-            atlas_media(occ_data[i, ])
-          },
-          error = function(e3) {
-            # SILENTLY skip problematic records like row 34 "recycling" error
-            NULL
-          }
-        )
-        if (!is.null(row_media) && nrow(row_media) > 0) {
-          fetch_results[[length(fetch_results) + 1]] <- row_media
-        }
-
-        # Keep going until we have a good buffer of records to filter from
-        if (length(fetch_results) >= target_n * 2) break
-      }
-
-      if (length(fetch_results) > 0) {
-        if (requireNamespace("dplyr", quietly = TRUE)) {
-          return(dplyr::bind_rows(fetch_results))
-        } else {
-          return(do.call(rbind, fetch_results))
-        }
+      if (grepl("email|401|403", e$message, ignore.case = TRUE)) {
+        message("ALA requires a registered email for this query. Use galah_config(email = 'your@email.com')")
+      } else {
+        message(paste("Error fetching occurrences from ALA:", e$message))
       }
       return(data.frame())
     }
   )
+
+  if (nrow(occ_data) == 0) {
+    message("No recordings found matching the specified filter criteria.")
+    return(0)
+  }
+
+  # 2. Chunked Media Fetch
+  # We process in chunks to avoid "recycling" errors crashing the whole batch
+  # while still being much faster than 1-by-1 fetching.
+  chunk_size <- 50
+  n_total <- nrow(occ_data)
+  n_chunks <- ceiling(n_total / chunk_size)
+  media_list <- list()
+  verified_audio_count <- 0
+
+  message(sprintf("Found %d occurrences. Processing in %d chunks...", n_total, n_chunks))
+
+  for (i in seq_len(n_chunks)) {
+    start_idx <- ((i - 1) * chunk_size) + 1
+    end_idx <- min(i * chunk_size, n_total)
+    chunk_occ <- occ_data[start_idx:end_idx, ]
+
+    message(sprintf("  Processing chunk %d/%d (records %d-%d)...", i, n_chunks, start_idx, end_idx))
+
+    chunk_media <- tryCatch(
+      {
+        atlas_media(chunk_occ)
+      },
+      error = function(e) {
+        message(sprintf("  Batch fetch failed for chunk %d (%s). Trying isolated fetch for this chunk...", i, e$message))
+        # Fallback to 1-by-1 JUST for this problematic chunk
+        chunk_results <- list()
+        for (j in seq_len(nrow(chunk_occ))) {
+          row_res <- tryCatch(atlas_media(chunk_occ[j, ]), error = function(e2) NULL)
+          if (!is.null(row_res) && nrow(row_res) > 0) chunk_results[[length(chunk_results) + 1]] <- row_res
+        }
+        if (length(chunk_results) > 0) do.call(rbind, chunk_results) else NULL
+      }
+    )
+
+    if (!is.null(chunk_media) && nrow(chunk_media) > 0) {
+      media_list[[length(media_list) + 1]] <- chunk_media
+      # Update count of potentially valid records (rough estimate before deep URL check)
+      verified_audio_count <- sum(sapply(media_list, nrow))
+    }
+
+    # Optimization: Stop early if we likely have enough records
+    # (Checking against target_n * 1.2 to allow for some non-audio/duplicate filtering later)
+    if (verified_audio_count >= target_n * 1.2) {
+      message("  Reached target buffer. Stopping early.")
+      break
+    }
+  }
+
+  if (length(media_list) == 0) {
+    message("No media metadata could be retrieved.")
+    return(0)
+  }
+
+  if (requireNamespace("dplyr", quietly = TRUE)) {
+    media_data <- dplyr::bind_rows(media_list)
+  } else {
+    media_data <- do.call(rbind, media_list)
+  }
+
 
   if (nrow(media_data) == 0) {
     message("No recordings found matching the specified filter criteria.")
