@@ -67,22 +67,69 @@ get_ala_sounds <- function(taxon_name,
 
   message(paste0("Searching for sounds for: ", taxon_name, "..."))
 
-  # 1. Fetch media metadata directly using the modern galah pipeline (v2.0+)
-  # This is much more efficient and avoids the "data_request" error
-  media_data <- tryCatch(
+  # 1. Fetch occurrences first to get specific record IDs
+  # This provides a stable list of records to work with
+  occ_data <- tryCatch(
     {
       galah_call() |>
         galah_identify(taxon_name) |>
         galah_filter(multimedia == "Sound") |>
         slice_head(n = target_n) |>
-        atlas_media()
+        atlas_occurrences()
     },
     error = function(e) {
-      if (grepl("email", e$message, ignore.case = TRUE)) {
+      if (grepl("email|401|403", e$message, ignore.case = TRUE)) {
         message("ALA requires a registered email for this query. Use galah_config(email = 'your@email.com')")
       } else {
-        message(paste("Error fetching media metadata from ALA:", e$message))
+        message(paste("Error fetching occurrences from ALA:", e$message))
       }
+      return(data.frame())
+    }
+  )
+
+  if (nrow(occ_data) == 0) {
+    message("No recordings found matching the specified filter criteria.")
+    return(0)
+  }
+
+  # 2. Fetch media metadata for these specific occurrences
+  # We try a batch fetch first, but fall back to individual records if galah
+  # produces a recycling error (common in v2.1.2 with inconsistent metadata).
+  media_data <- tryCatch(
+    {
+      atlas_media(occ_data)
+    },
+    error = function(e) {
+      # "can't recycle" or "size" errors indicate galah's internal unnesting failed
+      if (grepl("recycle|size", e$message, ignore.case = TRUE)) {
+        message("Inconsistent metadata detected in batch. Falling back to individual record fetch...")
+
+        fetch_results <- list()
+        for (i in seq_len(nrow(occ_data))) {
+          row_media <- tryCatch(
+            {
+              atlas_media(occ_data[i, ])
+            },
+            error = function(e2) {
+              NULL # Skip problematic records
+            }
+          )
+          if (!is.null(row_media) && nrow(row_media) > 0) {
+            fetch_results[[length(fetch_results) + 1]] <- row_media
+          }
+        }
+
+        if (length(fetch_results) > 0) {
+          # Safely combine results using dplyr if available, or do.call(rbind)
+          if (requireNamespace("dplyr", quietly = TRUE)) {
+            return(dplyr::bind_rows(fetch_results))
+          } else {
+            return(do.call(rbind, fetch_results))
+          }
+        }
+      }
+
+      message(paste("Error fetching media metadata from ALA:", e$message))
       return(data.frame())
     }
   )
