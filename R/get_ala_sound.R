@@ -68,28 +68,29 @@ get_ala_sounds <- function(taxon_name,
   message(paste0("Searching for sounds for: ", taxon_name, "..."))
 
   # 1. Primary Fetch: Try a single standard data_request pipeline (v2.0+)
-  # We fetch 5x more records than target_n to account for the multiple ways
+  # We fetch 10x more records than target_n to account for the multiple ways
   # ALA represents sounds and to ensure we find enough valid audio URLs.
+  # This "buffer" handles edge cases where many metadata records are empty or malformed.
+  message(sprintf("Fetching up to %d potential records...", target_n * 10))
   media_data <- tryCatch(
     {
       galah_call() |>
         galah_identify(taxon_name) |>
         galah_filter(multimedia == "Sound") |>
-        # Use a buffer to find various sound representations as requested
-        slice_head(n = target_n * 5) |>
+        slice_head(n = target_n * 10) |>
         atlas_media()
     },
     error = function(e) {
-      # Fallback 1: Manual Occurrence -> Media loop
-      # Required if the batch pipeline causes "recycling" or "data_request" errors
-      message("Standard pipeline failed (", e$message, "). Falling back to record-by-record fetch...")
+      # Fallback: Manual Occurrence -> Media loop
+      # Required if the batch pipeline causes unnesting or "recycling" errors.
+      message("Batch media fetch failed (", e$message, "). Trying isolated record fetch...")
 
       occ_data <- tryCatch(
         {
           galah_call() |>
             galah_identify(taxon_name) |>
             galah_filter(multimedia == "Sound") |>
-            slice_head(n = target_n * 5) |>
+            slice_head(n = target_n * 10) |>
             atlas_occurrences()
         },
         error = function(e2) {
@@ -106,26 +107,26 @@ get_ala_sounds <- function(taxon_name,
         return(data.frame())
       }
 
-      message(sprintf("Found %d occurrences. Fetching media metadata individually...", nrow(occ_data)))
+      message(sprintf("Found %d occurrences. Fetching metadata for each record...", nrow(occ_data)))
       fetch_results <- list()
       for (i in seq_len(nrow(occ_data))) {
-        # Fetch metadata for each record individual to isolate bad records
-        # Adding multimedia filter here is CRITICAL otherwise atlas_media fails/returns empty
+        # Using atlas_media(occ_data[i, ]) is the most robust way to get media for a specific record
+        # galah handles the ID extraction internally from the data frame row.
         row_media <- tryCatch(
           {
-            galah_call() |>
-              galah_filter(recordID == occ_data$recordID[i]) |>
-              galah_filter(multimedia == "Sound") |>
-              atlas_media()
+            atlas_media(occ_data[i, ])
           },
-          error = function(e3) NULL
+          error = function(e3) {
+            # SILENTLY skip problematic records like row 34 "recycling" error
+            NULL
+          }
         )
         if (!is.null(row_media) && nrow(row_media) > 0) {
           fetch_results[[length(fetch_results) + 1]] <- row_media
         }
 
-        # Break early if we have enough potential records to satisfy target_n after filtering
-        if (length(fetch_results) >= target_n) break
+        # Keep going until we have a good buffer of records to filter from
+        if (length(fetch_results) >= target_n * 2) break
       }
 
       if (length(fetch_results) > 0) {
