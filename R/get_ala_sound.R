@@ -67,69 +67,71 @@ get_ala_sounds <- function(taxon_name,
 
   message(paste0("Searching for sounds for: ", taxon_name, "..."))
 
-  # 1. Fetch occurrences first to get specific record IDs
-  # This provides a stable list of records to work with
-  occ_data <- tryCatch(
+  # 1. Primary Fetch: Try a single standard data_request pipeline (v2.0+)
+  # We fetch 5x more records than target_n to account for the multiple ways
+  # ALA represents sounds and to ensure we find enough valid audio URLs.
+  media_data <- tryCatch(
     {
       galah_call() |>
         galah_identify(taxon_name) |>
         galah_filter(multimedia == "Sound") |>
-        slice_head(n = target_n) |>
-        atlas_occurrences()
+        # Use a buffer to find various sound representations as requested
+        slice_head(n = target_n * 5) |>
+        atlas_media()
     },
     error = function(e) {
-      if (grepl("email|401|403", e$message, ignore.case = TRUE)) {
-        message("ALA requires a registered email for this query. Use galah_config(email = 'your@email.com')")
-      } else {
-        message(paste("Error fetching occurrences from ALA:", e$message))
-      }
-      return(data.frame())
-    }
-  )
+      # Fallback 1: Manual Occurrence -> Media loop
+      # Required if the batch pipeline causes "recycling" or "data_request" errors
+      message("Standard pipeline failed (", e$message, "). Falling back to record-by-record fetch...")
 
-  if (nrow(occ_data) == 0) {
-    message("No recordings found matching the specified filter criteria.")
-    return(0)
-  }
-
-  # 2. Fetch media metadata for these specific occurrences
-  # We try a batch fetch first, but fall back to individual records if galah
-  # produces a recycling error (common in v2.1.2 with inconsistent metadata).
-  media_data <- tryCatch(
-    {
-      atlas_media(occ_data)
-    },
-    error = function(e) {
-      # "can't recycle" or "size" errors indicate galah's internal unnesting failed
-      if (grepl("recycle|size", e$message, ignore.case = TRUE)) {
-        message("Inconsistent metadata detected in batch. Falling back to individual record fetch...")
-
-        fetch_results <- list()
-        for (i in seq_len(nrow(occ_data))) {
-          row_media <- tryCatch(
-            {
-              atlas_media(occ_data[i, ])
-            },
-            error = function(e2) {
-              NULL # Skip problematic records
-            }
-          )
-          if (!is.null(row_media) && nrow(row_media) > 0) {
-            fetch_results[[length(fetch_results) + 1]] <- row_media
-          }
-        }
-
-        if (length(fetch_results) > 0) {
-          # Safely combine results using dplyr if available, or do.call(rbind)
-          if (requireNamespace("dplyr", quietly = TRUE)) {
-            return(dplyr::bind_rows(fetch_results))
+      occ_data <- tryCatch(
+        {
+          galah_call() |>
+            galah_identify(taxon_name) |>
+            galah_filter(multimedia == "Sound") |>
+            slice_head(n = target_n * 5) |>
+            atlas_occurrences()
+        },
+        error = function(e2) {
+          if (grepl("email|401|403", e2$message, ignore.case = TRUE)) {
+            message("ALA requires a registered email for this query. Use galah_config(email = 'your@email.com')")
           } else {
-            return(do.call(rbind, fetch_results))
+            message(paste("Error fetching occurrences from ALA:", e2$message))
           }
+          return(data.frame())
         }
+      )
+
+      if (nrow(occ_data) == 0) {
+        return(data.frame())
       }
 
-      message(paste("Error fetching media metadata from ALA:", e$message))
+      fetch_results <- list()
+      for (i in seq_len(nrow(occ_data))) {
+        # Fetch metadata for each record individual to isolate bad records
+        row_media <- tryCatch(
+          {
+            galah_call() |>
+              galah_filter(recordID == occ_data$recordID[i]) |>
+              atlas_media()
+          },
+          error = function(e3) NULL
+        )
+        if (!is.null(row_media) && nrow(row_media) > 0) {
+          fetch_results[[length(fetch_results) + 1]] <- row_media
+        }
+
+        # Break early if we have enough potential records to satisfy target_n after filtering
+        if (length(fetch_results) >= target_n * 2) break
+      }
+
+      if (length(fetch_results) > 0) {
+        if (requireNamespace("dplyr", quietly = TRUE)) {
+          return(dplyr::bind_rows(fetch_results))
+        } else {
+          return(do.call(rbind, fetch_results))
+        }
+      }
       return(data.frame())
     }
   )
