@@ -106,13 +106,16 @@ get_ala_sounds <- function(taxon_name,
         return(data.frame())
       }
 
+      message(sprintf("Found %d occurrences. Fetching media metadata individually...", nrow(occ_data)))
       fetch_results <- list()
       for (i in seq_len(nrow(occ_data))) {
         # Fetch metadata for each record individual to isolate bad records
+        # Adding multimedia filter here is CRITICAL otherwise atlas_media fails/returns empty
         row_media <- tryCatch(
           {
             galah_call() |>
               galah_filter(recordID == occ_data$recordID[i]) |>
+              galah_filter(multimedia == "Sound") |>
               atlas_media()
           },
           error = function(e3) NULL
@@ -122,7 +125,7 @@ get_ala_sounds <- function(taxon_name,
         }
 
         # Break early if we have enough potential records to satisfy target_n after filtering
-        if (length(fetch_results) >= target_n * 2) break
+        if (length(fetch_results) >= target_n) break
       }
 
       if (length(fetch_results) > 0) {
