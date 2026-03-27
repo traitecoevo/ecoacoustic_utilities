@@ -6,11 +6,13 @@
 #' @return Logical. TRUE if reachable, FALSE otherwise.
 #' @importFrom httr GET status_code timeout
 #' @keywords internal
-is_api_reachable <- function(api_type = c("inat", "ala"), timeout_secs = 2) {
+is_api_reachable <- function(api_type = c("inat", "ala", "xc"), timeout_secs = 2) {
     api_type <- match.arg(api_type)
 
     url <- if (api_type == "inat") {
         "https://api.inaturalist.org/v1/observations"
+    } else if (api_type == "xc") {
+        "https://xeno-canto.org/api/3/recordings"
     } else {
         "https://ala.org.au"
     }
@@ -18,7 +20,7 @@ is_api_reachable <- function(api_type = c("inat", "ala"), timeout_secs = 2) {
     reachable <- tryCatch(
         {
             # We use a very light request (HEAD or per_page=0) if possible
-            query <- if (api_type == "inat") list(per_page = 0) else list()
+            query <- if (api_type == "inat") list(per_page = 0) else if (api_type == "xc") list(query = "test", page = 1) else list()
             resp <- httr::GET(url, query = query, httr::timeout(timeout_secs))
             httr::status_code(resp) < 500 # Consider it reachable if not a server error
         },
