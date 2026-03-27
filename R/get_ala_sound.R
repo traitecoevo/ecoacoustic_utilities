@@ -81,7 +81,12 @@ get_ala_sounds <- function(taxon_name,
         atlas_occurrences()
     },
     error = function(e) {
-      if (grepl("email|401|403", e$message, ignore.case = TRUE)) {
+      if (grepl("potions|brew", e$message, ignore.case = TRUE)) {
+        message("ALA configuration is missing. You need to register your email before querying ALA.")
+        message("  1. Register a free account at: https://auth.ala.org.au/userdetails/registration/createAccount")
+        message("  2. Then run: galah_config(email = 'your@email.com')")
+        message("  Note: galah_config() must be called each R session before using this function.")
+      } else if (grepl("email|401|403", e$message, ignore.case = TRUE)) {
         message("ALA requires a registered email for this query. Use galah_config(email = 'your@email.com')")
       } else {
         message(paste("Error fetching occurrences from ALA:", e$message))
