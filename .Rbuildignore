@@ -6,6 +6,8 @@
 ^verify_syntax\.R$
 ^\.gemini$
 ^sounds$
+^sounds_test$
+^top_10_missing_nsw_groups.*\.csv$
 ^codecov\.yml$
 ^CODECOV_SETUP\.md$
 ^PERFORMANCE\.md$

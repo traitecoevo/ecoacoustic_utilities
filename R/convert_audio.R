@@ -24,7 +24,9 @@ convert_to_wav <- function(path, out_dir = NULL, recursive = FALSE, delete_origi
 
     # Identify files to convert
     if (dir.exists(path)) {
-        pattern <- "\\.(mp3|m4a|ogg|flac|wma|aiff|aif)$"
+        # Include .wav so that non-standard WAVs (ADPCM, 24-bit, 32-bit float,
+        # wrong sample rate, etc.) are normalised to 48 kHz 16-bit PCM as well.
+        pattern <- "\\.(mp3|m4a|ogg|flac|wma|aiff|aif|wav)$"
         files <- list.files(path, pattern = pattern, full.names = TRUE, recursive = recursive, ignore.case = TRUE)
     } else {
         files <- path
@@ -46,8 +48,7 @@ convert_to_wav <- function(path, out_dir = NULL, recursive = FALSE, delete_origi
     converted_files <- c()
 
     for (f in files) {
-        # Skip if already WAV
-        if (tolower(tools::file_ext(f)) == "wav") next
+        is_wav_input <- tolower(tools::file_ext(f)) == "wav"
 
         # Determine output path
         if (is.null(out_dir)) {
@@ -57,32 +58,50 @@ convert_to_wav <- function(path, out_dir = NULL, recursive = FALSE, delete_origi
             output_f <- file.path(out_dir, paste0(tools::file_path_sans_ext(basename(f)), ".wav"))
         }
 
+        # For in-place WAV re-encoding we must write to a temp file first,
+        # otherwise the input is clobbered before conversion finishes.
+        if (is_wav_input && output_f == f) {
+            write_to <- paste0(f, ".converting.wav")
+        } else {
+            write_to <- output_f
+        }
+
         message("Converting: ", basename(f), " -> ", basename(output_f))
 
         success <- FALSE
         if (has_av) {
             tryCatch(
                 {
-                    av::av_audio_convert(f, output_f, verbose = FALSE)
+                    av::av_audio_convert(f, write_to, sample_rate = 48000L, verbose = FALSE)
                     success <- TRUE
                 },
                 error = function(e) {
                     warning("Failed to convert ", f, " using 'av': ", e$message)
+                    if (file.exists(write_to)) unlink(write_to)
                 }
             )
         } else if (has_ffmpeg) {
-            cmd <- sprintf("ffmpeg -y -i %s %s", shQuote(f), shQuote(output_f))
+            # -acodec pcm_s16le -ar 48000: 16-bit PCM at 48 kHz (BirdNET compatible)
+            cmd <- sprintf(
+                "ffmpeg -y -i %s -acodec pcm_s16le -ar 48000 %s",
+                shQuote(f), shQuote(write_to)
+            )
             res <- system(cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
             if (res == 0) {
                 success <- TRUE
             } else {
                 warning("Failed to convert ", f, " using system 'ffmpeg'.")
+                if (file.exists(write_to)) unlink(write_to)
             }
         }
 
         if (success) {
+            # Move temp file into place for in-place WAV re-encoding
+            if (is_wav_input && write_to != output_f) {
+                file.rename(write_to, output_f)
+            }
             converted_files <- c(converted_files, output_f)
-            if (delete_original) {
+            if (delete_original && !is_wav_input) {
                 file.remove(f)
             }
         }

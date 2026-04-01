@@ -4,52 +4,51 @@
 #' This function improves upon basic media downloads by handling metadata
 #' and limiting download counts.
 #'
-#' @param taxon_name Character. Scientific or common name of the taxon to search for.
-#' @param target_n Numeric. Target number of sound files to download. Default is 50.
-#' @param download Logical. If TRUE, downloads audio files. If FALSE, only returns
-#'   the count of available recordings. Default is TRUE.
+#' @param taxon_name Character. Scientific or common name of the taxon to
+#'   search for.
+#' @param target_n Numeric. Target number of sound files to download.
+#'   Default is 50.
+#' @param download Logical. If TRUE, downloads audio files. If FALSE, only
+#'   returns the count of available recordings. Default is TRUE.
 #' @param out_dir Character. Output directory for downloaded files. Will create
-#'   subdirectories "audio" and "metadata.csv". Default is "sounds".
-#' @param include_taxon_name Logical. If TRUE, prepends the taxon name to the filename.
+#'   subdirectories "audio" and "metadata_ala.csv". Default is "sounds".
+#' @param include_taxon_name Logical. If TRUE, prepends the taxon name to the
+#'   filename. Default is TRUE.
+#' @param supplier Deprecated. ANWC/CSIRO recordings are not indexed under
+#'   \code{multimedia == "Sound"} in ALA and cannot be retrieved via this
+#'   function. Use \code{get_anwc_sounds()} instead.
+#' @param as_wav Logical. If TRUE, converts downloaded audio files to 48 kHz
+#'   16-bit PCM WAV (required for BirdNET and other bioacoustic pipelines).
 #'   Default is TRUE.
-#' @param supplier Character. Data supplier to filter for. Options are "all" or "CSIRO".
-#'   If "CSIRO", filters for records with institutionCode "ANWC" and
-#'   collectionCode "Sounds". A lightweight count check is performed first;
-#'   if no CSIRO records exist, the function returns 0 immediately without
-#'   downloading the full media metadata. Default is "all".
-#' @param as_wav Logical. If TRUE, converts downloaded audio files to WAV format.
-#'   Default is FALSE.
 #'
-#' @return Character. The absolute path to the metadata CSV file created/updated.
+#' @return Character. The absolute path to the metadata CSV file
+#'   created/updated, or 0 if no recordings were found/downloaded.
 #'
 #' @details
-#' When \code{download = TRUE}, the function:
-#' \itemize{
-#'   \item Creates \code{out_dir/audio/} directory for audio files
-#'   \item Creates \code{out_dir/metadata_ala.csv} with record metadata
-#'   \item Downloads files named as \code{[Taxon_Name_]<record_id>.<ext>}
-#'   \item Deduplicates media records by URL before downloading (ALA can return
-#'     multiple rows pointing to the same audio file)
-#'   \item Skips files that already exist in the output directory or have been
-#'     downloaded in the current batch
-#'   \item Uses the ALA \code{recordID} for filenames; when missing, extracts a
-#'     UUID from the audio URL for traceability back to the source record
-#'   \item Falls back to the searched \code{taxon_name} when \code{scientificName}
-#'     is missing from a record
-#'   \item Automatically converts recordings to WAV if \code{as_wav = TRUE}
-#' }
+#' ALA sound records are retrieved via \code{atlas_media()} with a
+#' \code{multimedia == "Sound"} filter. Because some ALA records tagged as
+#' "Sound" contain non-audio media (e.g. \code{image/jpeg}), a secondary
+#' \code{mimetype} check keeps only records with \code{audio/*} MIME types.
+#'
+#' The download URL for ALA sounds is the \code{image_url} field (ALA uses
+#' this field for all media types). File extensions are derived from the
+#' \code{mimetype} field, not from the URL (ALA URLs have no extension).
+#'
+#' A known galah 2.x bug causes a recycling error when fetching many sound
+#' records in a single request. The function automatically falls back to
+#' year-by-year fetching (most recent years first) to work around this.
 #'
 #' @examples
 #' \dontrun{
 #' galah_config(email = "your-email@example.com")
 #' # Search and download up to 10 sounds as WAV
-#' get_ala_sounds("Teleogryllus commodus", target_n = 10, as_wav = TRUE)
+#' get_ala_sounds("Ninox boobook", target_n = 10, as_wav = TRUE)
 #' }
 #'
 #' @export
-#' @importFrom galah galah_call galah_identify galah_filter galah_select atlas_media atlas_counts atlas_occurrences
+#' @importFrom galah galah_call galah_identify galah_filter atlas_media
 #' @importFrom httr GET write_disk stop_for_status user_agent timeout
-#' @importFrom dplyr select slice_head
+#' @importFrom dplyr slice_head
 #' @importFrom utils head write.csv write.table read.csv
 get_ala_sounds <- function(taxon_name,
                            target_n = 50,
@@ -57,225 +56,127 @@ get_ala_sounds <- function(taxon_name,
                            out_dir = "sounds",
                            include_taxon_name = TRUE,
                            supplier = c("all", "CSIRO"),
-                           as_wav = FALSE) {
+                           as_wav = TRUE) {
   supplier <- match.arg(supplier)
-  # Check API availability
+  if (supplier == "CSIRO") {
+    warning(
+      "supplier = 'CSIRO' is deprecated in get_ala_sounds(). ",
+      "ANWC/CSIRO recordings are not indexed as multimedia == 'Sound' in ALA. ",
+      "Use get_anwc_sounds() instead.",
+      call. = FALSE
+    )
+  }
+
   if (!is_api_reachable("ala")) {
     message("ALA API is unreachable. Returning 0.")
     return(0)
   }
 
-  message(paste0("Searching for sounds for: ", taxon_name, "..."))
+  message("Searching for sounds for: ", taxon_name, "...")
 
-  # 1. Primary Fetch: Get occurrences first
-  # Use a smarter buffer: target + 50% + 20 (handles small numbers and large numbers)
-  buffer_size <- ceiling(target_n * 1.5) + 20
-  message(sprintf("Fetching up to %d potential records...", buffer_size))
+  # ── Fetch ──────────────────────────────────────────────────────────────────
+  # galah 2.x has a recycling bug when many records have different numbers of
+  # attached sounds/images. We try a bulk fetch first; on recycling error we
+  # fall back to year-by-year (most recent first) and stop early once we have
+  # enough records.
 
-  occ_data <- tryCatch(
+  message("Fetching sound media records...")
+  result <- tryCatch(
     {
       galah_call() |>
         galah_identify(taxon_name) |>
-        galah_filter(multimedia == "Sound") |>
-        slice_head(n = buffer_size) |>
-        atlas_occurrences()
+        galah_filter(multimedia == "Sound") |> # nolint
+        atlas_media()
     },
-    error = function(e) {
-      if (grepl("potions|brew", e$message, ignore.case = TRUE)) {
-        message("ALA configuration is missing. You need to register your email before querying ALA.")
-        message("  1. Register a free account at: https://auth.ala.org.au/userdetails/registration/createAccount")
-        message("  2. Then run: galah_config(email = 'your@email.com')")
-        message("  Note: galah_config() must be called each R session before using this function.")
-      } else if (grepl("email|401|403", e$message, ignore.case = TRUE)) {
-        message("ALA requires a registered email for this query. Use galah_config(email = 'your@email.com')")
-      } else {
-        message(paste("Error fetching occurrences from ALA:", e$message))
-      }
-      return(data.frame())
-    }
+    error = function(e) list(error = e$message)
   )
 
-  if (nrow(occ_data) == 0) {
-    message("No recordings found matching the specified filter criteria.")
-    return(0)
-  }
-
-  # 2. Chunked Media Fetch
-  # We process in chunks to avoid "recycling" errors crashing the whole batch
-  # while still being much faster than 1-by-1 fetching.
-  chunk_size <- 50
-  n_total <- nrow(occ_data)
-  n_chunks <- ceiling(n_total / chunk_size)
-  media_list <- list()
-  verified_audio_count <- 0
-
-  message(sprintf("Found %d occurrences. Processing in %d chunks...", n_total, n_chunks))
-
-  for (i in seq_len(n_chunks)) {
-    start_idx <- ((i - 1) * chunk_size) + 1
-    end_idx <- min(i * chunk_size, n_total)
-    chunk_occ <- occ_data[start_idx:end_idx, ]
-
-    message(sprintf("  Processing chunk %d/%d (records %d-%d)...", i, n_chunks, start_idx, end_idx))
-
-    chunk_media <- tryCatch(
-      {
-        atlas_media(chunk_occ)
-      },
-      error = function(e) {
-        message(sprintf("  Batch fetch failed for chunk %d (%s). Trying isolated fetch for this chunk...", i, e$message))
-        # Fallback to 1-by-1 JUST for this problematic chunk
-        chunk_results <- list()
-        for (j in seq_len(nrow(chunk_occ))) {
-          row_res <- tryCatch(atlas_media(chunk_occ[j, ]), error = function(e2) NULL)
-          if (!is.null(row_res) && nrow(row_res) > 0) chunk_results[[length(chunk_results) + 1]] <- row_res
-        }
-        if (length(chunk_results) > 0) do.call(rbind, chunk_results) else NULL
-      }
-    )
-
-    if (!is.null(chunk_media) && nrow(chunk_media) > 0) {
-      media_list[[length(media_list) + 1]] <- chunk_media
-      # Update count of potentially valid records (rough estimate before deep URL check)
-      verified_audio_count <- sum(sapply(media_list, nrow))
-    }
-
-    # Optimization: Stop early if we likely have enough records
-    # (Checking against target_n * 1.2 to allow for some non-audio/duplicate filtering later)
-    if (verified_audio_count >= target_n * 1.2) {
-      message("  Reached target buffer. Stopping early.")
-      break
-    }
-  }
-
-  if (length(media_list) == 0) {
-    message("No media metadata could be retrieved.")
-    return(0)
-  }
-
-  if (requireNamespace("dplyr", quietly = TRUE)) {
-    media_data <- dplyr::bind_rows(media_list)
+  if (is.data.frame(result) && nrow(result) > 0) {
+    media_data <- result
+    message(sprintf("  Retrieved %d records.", nrow(media_data)))
   } else {
+    # Recycling error or other failure — fall back to year-by-year
+    if (is.list(result) && grepl("recycle|size", result$error, ignore.case = TRUE)) {
+      message("  Bulk fetch hit a galah recycling error; switching to year-by-year fallback...")
+    } else if (is.list(result)) {
+      message("  Bulk fetch error: ", result$error, ". Trying year-by-year fallback...")
+    } else {
+      message("  No records returned. Trying year-by-year fallback...")
+    }
+
+    current_year <- as.integer(format(Sys.Date(), "%Y"))
+    years <- seq(current_year, current_year - 40, by = -1)
+    media_list <- list()
+    total_so_far <- 0
+    # Fetch 2x target to have headroom after mimetype filtering
+    buffer_needed <- target_n * 2
+
+    for (yr in years) {
+      if (total_so_far >= buffer_needed) break
+      yr_result <- tryCatch(
+        galah_call() |>
+          galah_identify(taxon_name) |>
+          galah_filter(multimedia == "Sound", year == yr) |> # nolint
+          atlas_media(),
+        error = function(e) NULL
+      )
+      if (!is.null(yr_result) && is.data.frame(yr_result) && nrow(yr_result) > 0) {
+        media_list[[length(media_list) + 1]] <- yr_result
+        total_so_far <- total_so_far + nrow(yr_result)
+        message(sprintf("  %d: %d records", yr, nrow(yr_result)))
+      }
+    }
+
+    if (length(media_list) == 0) {
+      message("No recordings found for: ", taxon_name)
+      return(0)
+    }
     media_data <- do.call(rbind, media_list)
+    message(sprintf("  Year-by-year total: %d records.", nrow(media_data)))
   }
 
-
-  if (nrow(media_data) == 0) {
-    message("No recordings found matching the specified filter criteria.")
+  # ── Filter to actual audio by mimetype ────────────────────────────────────
+  # Even with multimedia == "Sound", some records have mimetype image/jpeg.
+  # Keep only records whose mimetype starts with "audio/".
+  if (!"mimetype" %in% names(media_data)) {
+    message("No 'mimetype' column in results. Cannot verify audio records.")
     return(0)
   }
 
-
-  # --- Column Mapping for Metadata ---
-  cols <- names(media_data)
-  # Basic columns
-  id_col <- intersect(c("recordID", "occurrenceID", "id"), cols)[1]
-  url_col <- intersect(c("media_url", "image_url", "full_res"), cols)[1]
-  name_col <- intersect(c("scientificName", "species", "name"), cols)[1]
-  lic_col <- intersect(c("license", "dcterms:license", "multimediaLicence"), cols)[1]
-  fmt_col <- intersect(c("format", "mimetype", "multimedia_format"), cols)[1]
-
-  # --- R-side filtering for robustness ---
-
-  # 1. Supplier filtering (R-side backup)
-  if (supplier == "CSIRO") {
-    # Match ANWC Sounds collection
-    if ("institutionCode" %in% names(media_data) && "collectionCode" %in% names(media_data)) {
-      is_csiro <- (media_data$institutionCode == "ANWC" & media_data$collectionCode == "Sounds")
-      is_csiro[is.na(is_csiro)] <- FALSE
-      media_data <- media_data[is_csiro, ]
-    }
+  mt <- as.character(media_data$mimetype)
+  is_audio <- grepl("^audio/", mt, ignore.case = TRUE)
+  n_dropped <- sum(!is_audio)
+  if (n_dropped > 0) {
+    message(sprintf(
+      "  Dropped %d non-audio records (e.g. image/jpeg tagged as Sound).", n_dropped
+    ))
   }
-
-  if (nrow(media_data) == 0) {
-    message("No recordings found matching the specified filter criteria.")
-    return(0)
-  }
-
-  # 2. R-side filtering for actual audio files
-  # ALA media records can have audio URLs in many places.
-  is_audio <- rep(FALSE, nrow(media_data))
-  audio_urls <- rep(NA_character_, nrow(media_data))
-
-  for (i in seq_len(nrow(media_data))) {
-    row <- media_data[i, ]
-    found_url <- NULL
-
-    # Detect if any column contains a clear audio URL first
-    for (col_name in names(row)) {
-      val <- row[[col_name]]
-      if (is.list(val)) val <- unlist(val)
-      val <- as.character(val)
-      audio_matches <- grep("https?://.*\\.(mp3|wav|m4a|ogg|aac)(\\?|$)", tolower(val), value = TRUE)
-      if (length(audio_matches) > 0) {
-        found_url <- val[grep(tolower(audio_matches[1]), tolower(val))[1]]
-        break
-      }
-    }
-
-    # If no URL with extension, check if the format/mimetype says audio
-    if (is.null(found_url)) {
-      if (!is.na(fmt_col) && fmt_col %in% names(row)) {
-        fmt_val <- tolower(as.character(row[[fmt_col]]))
-        if (grepl("audio|mpeg|wav", fmt_val) && !grepl("image|video", fmt_val)) {
-          # Use the primary URL if it exists
-          if (!is.na(url_col)) {
-            primary_url <- as.character(row[[url_col]])
-            if (!is.na(primary_url) && primary_url != "") {
-              found_url <- primary_url
-            }
-          }
-        }
-      }
-    }
-
-    if (!is.null(found_url)) {
-      is_audio[i] <- TRUE
-      audio_urls[i] <- found_url
-    }
-  }
-
-  # Filter and update
   media_data <- media_data[is_audio, ]
-  audio_urls <- audio_urls[is_audio]
 
-  if (nrow(media_data) > 0) {
-    media_data$audio_url_verified <- audio_urls
-    url_col <- "audio_url_verified"
-  } else {
+  if (nrow(media_data) == 0) {
+    message("No audio records found for: ", taxon_name)
     return(0)
   }
 
-  # Deduplicate by verified audio URL (ALA returns multiple rows per occurrence)
-  dup_url <- duplicated(media_data$audio_url_verified)
-  if (any(dup_url)) {
-    n_dups <- sum(dup_url)
-    media_data <- media_data[!dup_url, ]
-    message(paste("Removed", n_dups, "duplicate audio URLs."))
+  # ── Deduplicate by URL ─────────────────────────────────────────────────────
+  if ("image_url" %in% names(media_data)) {
+    dup <- duplicated(media_data$image_url)
+    if (any(dup)) {
+      message(sprintf("  Removed %d duplicate URLs.", sum(dup)))
+      media_data <- media_data[!dup, ]
+    }
   }
 
-  if (nrow(media_data) > target_n) {
-    media_data <- media_data[1:target_n, ]
-  }
+  # Trim to target
+  if (nrow(media_data) > target_n) media_data <- media_data[seq_len(target_n), ]
 
-  total_audio <- nrow(media_data)
-  message(paste("Found", total_audio, "actual sound records in ALA (after robust URL verification)."))
+  message(sprintf(
+    "Found %d audio record(s) for %s.", nrow(media_data), taxon_name
+  ))
 
-  if (total_audio == 0) {
-    return(0)
-  }
+  if (!download) return(nrow(media_data))
 
-  if (!download) {
-    return(total_audio)
-  }
-
-  # Warning about MP3/WAV compatibility if needed
-  if (!as_wav && !is.na(fmt_col) && !any(grepl("wav", media_data[[fmt_col]], ignore.case = TRUE))) {
-    message("Note: All retrieved sounds appear to be compressed formats (MP3/M4A).")
-    message("      If your downstream software requires WAV, use as_wav = TRUE or convert them manually.")
-  }
-
-  # 2. Download section
+  # ── Download ───────────────────────────────────────────────────────────────
   audio_dir <- file.path(out_dir, "audio")
   if (!dir.exists(audio_dir)) dir.create(audio_dir, recursive = TRUE)
 
@@ -283,14 +184,15 @@ get_ala_sounds <- function(taxon_name,
   if (!file.exists(csv_path)) {
     write.csv(
       data.frame(
-        record_id = character(),
-        taxon_name = character(),
-        file_url = character(),
-        file_path = character(),
-        latitude = numeric(),
-        longitude = numeric(),
-        date = character(),
-        license = character(),
+        record_id   = character(),
+        taxon_name  = character(),
+        data_source = character(),
+        file_url    = character(),
+        file_path   = character(),
+        latitude    = numeric(),
+        longitude   = numeric(),
+        date        = character(),
+        license     = character(),
         stringsAsFactors = FALSE
       ),
       csv_path,
@@ -298,164 +200,164 @@ get_ala_sounds <- function(taxon_name,
     )
   }
 
-  seen <- list.files(audio_dir)
+  seen           <- list.files(audio_dir)
   seen_this_batch <- character(0)
-  downloaded <- 0
-  skipped <- 0
-  failed <- 0
+  downloaded     <- 0L
+  skipped        <- 0L
+  failed         <- 0L
 
-  # Limit to target_n
-  to_download <- head(media_data, target_n)
+  message("Downloading ", nrow(media_data), " records...")
 
-  message(paste("Checking", nrow(to_download), "records for download..."))
+  for (i in seq_len(nrow(media_data))) {
+    row <- media_data[i, ]
 
-  for (i in seq_len(nrow(to_download))) {
-    row <- to_download[i, ]
-    url <- row[[url_col]]
-
-    if (is.null(url) || is.na(url) || url == "") {
-      skipped <- skipped + 1
+    # URL — ALA uses image_url for all media types
+    url <- if ("image_url" %in% names(row)) as.character(row$image_url) else NA_character_
+    if (is.na(url) || url == "") {
+      skipped <- skipped + 1L
       next
     }
 
-    # Safe ID extraction — try recordID, then extract from URL, then row index
-    rec_id <- if (!is.na(id_col) && id_col %in% names(row)) as.character(row[[id_col]]) else NA_character_
+    # Media ID — prefer media_id (clean UUID) over recordID (can embed species name)
+    rec_id <- NA_character_
+    if ("media_id" %in% names(row)) rec_id <- as.character(row$media_id)
     if (is.na(rec_id) || rec_id == "") {
-      # Try to extract a UUID or unique hash from the audio URL
-      url_id <- sub(".*[/=]([a-f0-9]{8}[-]?[a-f0-9]{4}[-]?[a-f0-9]{4}[-]?[a-f0-9]{4}[-]?[a-f0-9]{12}).*", "\\1", url, ignore.case = TRUE)
-      if (url_id != url && nchar(url_id) >= 8) {
-        rec_id <- url_id
-      } else {
-        rec_id <- paste0("ala_row_", i)
-      }
+      if ("recordID" %in% names(row)) rec_id <- as.character(row$recordID)
+    }
+    if (is.na(rec_id) || rec_id == "") {
+      uuid_match <- regmatches(
+        url,
+        regexpr(
+          "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}",
+          url, ignore.case = TRUE
+        )
+      )
+      rec_id <- if (length(uuid_match) > 0) uuid_match else paste0("ala_row_", i)
     }
 
-    # 1. Determine taxon string for filename
-    tax_str <- ""
+    # Scientific name for filename prefix
     scientific_name <- taxon_name
-    if (!is.na(name_col) && name_col %in% names(row)) {
-      scientific_name <- as.character(row[[name_col]])
-      if (is.na(scientific_name)) scientific_name <- taxon_name
+    if ("scientificName" %in% names(row)) {
+      sn <- as.character(row$scientificName)
+      if (!is.na(sn) && sn != "") scientific_name <- sn
     }
 
+    tax_str <- ""
     if (include_taxon_name) {
-      cleaned_name <- gsub("[^A-Za-z0-9_]", "", gsub(" ", "_", scientific_name))
-      # Avoid doubling the name if the ID already contains it
-      if (!is.na(cleaned_name) && !grepl(cleaned_name, rec_id, ignore.case = TRUE)) {
-        tax_str <- paste0(cleaned_name, "_")
+      cleaned <- gsub("[^A-Za-z0-9_]", "", gsub(" ", "_", scientific_name))
+      tax_str <- paste0(cleaned, "_")
+    }
+
+    # Source label from dataResourceName
+    drn <- if ("dataResourceName" %in% names(row)) as.character(row$dataResourceName) else NA_character_
+    source_label <- if (is.na(drn) || drn == "") {
+      "ALA"
+    } else {
+      drn_low <- tolower(drn)
+      if (grepl("inaturalist", drn_low)) {
+        "iNat"
+      } else if (grepl("anwc|australian national wildlife|csiro", drn_low)) {
+        "CSIRO"
+      } else if (grepl("xeno.canto", drn_low)) {
+        "XC"
+      } else if (grepl("macaulay", drn_low)) {
+        "ML"
+      } else {
+        # First alphanumeric word of the resource name
+        gsub("[^A-Za-z0-9]", "", strsplit(drn, " ")[[1]][1])
       }
     }
 
-    # 2. Initial extension guess
-    ext <- ".mp3"
-    if (!is.na(fmt_col) && fmt_col %in% names(row)) {
-      fmt_val <- tolower(as.character(row[[fmt_col]]))
-      if (grepl("wav", fmt_val)) {
-        ext <- ".wav"
-      } else if (grepl("m4a|mp4|aac", fmt_val)) ext <- ".m4a"
-    }
-    # Fallback to URL extension if metadata is generic
-    if (grepl("\\.(wav|m4a|mp3|mp4|aac|ogg)(\\?|$)", tolower(url))) {
-      url_path <- tolower(url)
-      if (grepl("\\.wav", url_path)) {
-        ext <- ".wav"
-      } else if (grepl("\\.m4a|\\.mp4|\\.aac", url_path)) {
-        ext <- ".m4a"
-      } else if (grepl("\\.mp3", url_path)) {
-        ext <- ".mp3"
-      } else if (grepl("\\.ogg", url_path)) ext <- ".ogg"
+    # Extension from mimetype (ALA URLs have no extension)
+    mime <- tolower(as.character(row$mimetype))
+    ext <- if (grepl("vnd\\.wave|wav|x-wav", mime)) {
+      ".wav"
+    } else if (grepl("mp4|m4a|aac", mime)) {
+      ".m4a"
+    } else if (grepl("ogg", mime)) {
+      ".ogg"
+    } else {
+      ".mp3"  # audio/mpeg and unknown audio types
     }
 
-    fname <- paste0(tax_str, rec_id, ext)
+    fname <- paste0(tax_str, rec_id, "_", source_label, ext)
 
     if (fname %in% seen || fname %in% seen_this_batch) {
-      skipped <- skipped + 1
+      skipped <- skipped + 1L
       next
     }
     seen_this_batch <- c(seen_this_batch, fname)
-
     dest <- file.path(audio_dir, fname)
 
-    # Use httr::GET with write_disk for more robust binary downloads
     ok <- tryCatch(
       {
-        ua <- httr::user_agent("ecoacoustic-utilities-ala-downloader/1.0")
-        resp <- httr::GET(url, ua, httr::write_disk(dest, overwrite = TRUE), httr::timeout(120))
+        ua   <- httr::user_agent("ecoacoustic-utilities-ala-downloader/1.0")
+        resp <- httr::GET(
+          url, ua, httr::write_disk(dest, overwrite = TRUE), httr::timeout(120)
+        )
         httr::stop_for_status(resp)
         TRUE
       },
       error = function(e) {
-        message(paste("Failed to download:", url, "-", e$message))
-        if (file.exists(dest)) unlink(dest) # clean up partial/failed download
+        message("Failed to download: ", url, " - ", e$message)
+        if (file.exists(dest)) unlink(dest)
         FALSE
       }
     )
 
     if (ok) {
-      downloaded <- downloaded + 1
-      cat(sprintf("[%d/%d] %s\n", i, nrow(to_download), fname))
+      downloaded <- downloaded + 1L
+      cat(sprintf("[%d/%d] %s\n", downloaded, nrow(media_data), fname))
 
-      # Append to metadata CSV
-      # Safely extract lat, long, date
-      lat <- if ("decimalLatitude" %in% names(row)) row[["decimalLatitude"]] else NA
-      lon <- if ("decimalLongitude" %in% names(row)) row[["decimalLongitude"]] else NA
-      dt <- if ("eventDate" %in% names(row)) as.character(row[["eventDate"]]) else NA
+      lat <- if ("decimalLatitude"  %in% names(row)) row$decimalLatitude  else NA
+      lon <- if ("decimalLongitude" %in% names(row)) row$decimalLongitude else NA
+      dt  <- if ("eventDate"        %in% names(row)) as.character(row$eventDate) else NA
+      lic <- if ("license"          %in% names(row)) as.character(row$license) else "Unknown"
 
-      # Calculate relative path for file_path
-      dest_rel <- file.path("audio", fname)
-
-      new_entry <- data.frame(
-        record_id = rec_id,
-        taxon_name = if (!is.na(name_col) && name_col %in% names(row)) row[[name_col]] else taxon_name,
-        file_url = url,
-        file_path = dest_rel,
-        latitude = lat,
-        longitude = lon,
-        date = dt,
-        license = if (!is.na(lic_col) && lic_col %in% names(row)) row[[lic_col]] else "Unknown",
-        stringsAsFactors = FALSE
+      write.table(
+        data.frame(
+          record_id   = rec_id,
+          taxon_name  = scientific_name,
+          data_source = source_label,
+          file_url    = url,
+          file_path   = file.path("audio", fname),
+          latitude    = lat,
+          longitude   = lon,
+          date        = dt,
+          license     = lic,
+          stringsAsFactors = FALSE
+        ),
+        csv_path, sep = ",", append = TRUE, col.names = FALSE, row.names = FALSE
       )
-      write.table(new_entry, csv_path, sep = ",", append = TRUE, col.names = FALSE, row.names = FALSE)
     } else {
-      failed <- failed + 1
+      failed <- failed + 1L
     }
   }
 
   message(sprintf(
-    "Done. %d records checked: %d downloaded, %d skipped (included duplicates), %d failed.",
-    nrow(to_download), downloaded, skipped, failed
+    "Done. %d downloaded, %d skipped (duplicates/missing URL), %d failed.",
+    downloaded, skipped, failed
   ))
 
-  # 3. Post-download conversion to WAV
+  # ── WAV conversion ─────────────────────────────────────────────────────────
   if (as_wav && downloaded > 0) {
     message("Converting downloaded files to WAV format...")
     converted <- convert_to_wav(audio_dir, delete_original = TRUE)
 
     if (length(converted) > 0) {
       message(sprintf("Successfully converted %d files to WAV.", length(converted)))
-
-      # Update metadata CSV to reflect new filenames
       meta <- read.csv(csv_path)
-      # Extract just the basename of the converted files for matching
-      conv_basenames_no_ext <- tools::file_path_sans_ext(basename(converted))
-
-      updated <- FALSE
+      conv_stems <- tools::file_path_sans_ext(basename(converted))
       for (i in seq_len(nrow(meta))) {
-        meta_basename_no_ext <- tools::file_path_sans_ext(basename(meta$file_path[i]))
-        if (meta_basename_no_ext %in% conv_basenames_no_ext) {
-          # Update path and extension
-          old_path <- meta$file_path[i]
-          new_path <- paste0(tools::file_path_sans_ext(old_path), ".wav")
-          meta$file_path[i] <- new_path
-          updated <- TRUE
+        if (tools::file_path_sans_ext(basename(meta$file_path[i])) %in% conv_stems) {
+          meta$file_path[i] <- paste0(
+            tools::file_path_sans_ext(meta$file_path[i]), ".wav"
+          )
         }
       }
-
-      if (updated) {
-        write.csv(meta, csv_path, row.names = FALSE)
-      }
+      write.csv(meta, csv_path, row.names = FALSE)
     }
   }
 
-  return(invisible(normalizePath(csv_path)))
+  invisible(normalizePath(csv_path))
 }
