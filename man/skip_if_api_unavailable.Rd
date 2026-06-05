@@ -7,7 +7,7 @@
 skip_if_api_unavailable(api_type)
 }
 \arguments{
-\item{api_type}{Character. "inat" or "ala".}
+\item{api_type}{Character. One of "inat", "ala", or "xc".}
 }
 \description{
 Helper for testthat to elegantly skip integration tests when APIs are down.

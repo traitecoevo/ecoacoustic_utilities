@@ -4,10 +4,10 @@
 \alias{is_api_reachable}
 \title{Check if a remote API is reachable}
 \usage{
-is_api_reachable(api_type = c("inat", "ala"), timeout_secs = 2)
+is_api_reachable(api_type = c("inat", "ala", "xc"), timeout_secs = 2)
 }
 \arguments{
-\item{api_type}{Character. Either "inat" or "ala".}
+\item{api_type}{Character. One of "inat", "ala", or "xc".}
 
 \item{timeout_secs}{Numeric. Seconds to wait before timing out. Default is 2.}
 }
