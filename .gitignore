@@ -4,5 +4,15 @@
 .Ruserdata
 .DS_Store
 sounds
+sounds_test/
 images
 analysis/
+
+# R CMD check / build artifacts
+*.Rcheck/
+*.tar.gz
+Rplots.pdf
+
+# generated outputs
+fowlers_gap_map.png
+top_10_missing_nsw_groups*.csv
