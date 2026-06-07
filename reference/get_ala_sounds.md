@@ -14,7 +14,7 @@ get_ala_sounds(
   out_dir = "sounds",
   include_taxon_name = TRUE,
   supplier = c("all", "CSIRO"),
-  as_wav = FALSE
+  as_wav = TRUE
 )
 ```
 
@@ -36,7 +36,7 @@ get_ala_sounds(
 - out_dir:
 
   Character. Output directory for downloaded files. Will create
-  subdirectories "audio" and "metadata.csv". Default is "sounds".
+  subdirectories "audio" and "metadata_ala.csv". Default is "sounds".
 
 - include_taxon_name:
 
@@ -45,44 +45,38 @@ get_ala_sounds(
 
 - supplier:
 
-  Character. Data supplier to filter for. Options are "all" or "CSIRO".
-  If "CSIRO", filters for records with institutionCode "ANWC" and
-  collectionCode "Sounds". A lightweight count check is performed first;
-  if no CSIRO records exist, the function returns 0 immediately without
-  downloading the full media metadata. Default is "all".
+  Deprecated. ANWC/CSIRO recordings are not indexed under
+  `multimedia == "Sound"` in ALA and cannot be retrieved via this
+  function. Use
+  [`get_anwc_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_anwc_sounds.md)
+  instead.
 
 - as_wav:
 
-  Logical. If TRUE, converts downloaded audio files to WAV format.
-  Default is FALSE.
+  Logical. If TRUE, converts downloaded audio files to 48 kHz 16-bit PCM
+  WAV (required for BirdNET and other bioacoustic pipelines). Default is
+  TRUE.
 
 ## Value
 
-Character. The absolute path to the metadata CSV file created/updated.
+Character. The absolute path to the metadata CSV file created/updated,
+or 0 if no recordings were found/downloaded.
 
 ## Details
 
-When `download = TRUE`, the function:
+ALA sound records are retrieved via
+[`atlas_media()`](https://galah.ala.org.au/R/reference/atlas_.html) with
+a `multimedia == "Sound"` filter. Because some ALA records tagged as
+"Sound" contain non-audio media (e.g. `image/jpeg`), a secondary
+`mimetype` check keeps only records with `audio/*` MIME types.
 
-- Creates `out_dir/audio/` directory for audio files
+The download URL for ALA sounds is the `image_url` field (ALA uses this
+field for all media types). File extensions are derived from the
+`mimetype` field, not from the URL (ALA URLs have no extension).
 
-- Creates `out_dir/metadata_ala.csv` with record metadata
-
-- Downloads files named as `[Taxon_Name_]<record_id>.<ext>`
-
-- Deduplicates media records by URL before downloading (ALA can return
-  multiple rows pointing to the same audio file)
-
-- Skips files that already exist in the output directory or have been
-  downloaded in the current batch
-
-- Uses the ALA `recordID` for filenames; when missing, extracts a UUID
-  from the audio URL for traceability back to the source record
-
-- Falls back to the searched `taxon_name` when `scientificName` is
-  missing from a record
-
-- Automatically converts recordings to WAV if `as_wav = TRUE`
+A known galah 2.x bug causes a recycling error when fetching many sound
+records in a single request. The function automatically falls back to
+year-by-year fetching (most recent years first) to work around this.
 
 ## Examples
 
@@ -90,6 +84,6 @@ When `download = TRUE`, the function:
 if (FALSE) { # \dontrun{
 galah_config(email = "your-email@example.com")
 # Search and download up to 10 sounds as WAV
-get_ala_sounds("Teleogryllus commodus", target_n = 10, as_wav = TRUE)
+get_ala_sounds("Ninox boobook", target_n = 10, as_wav = TRUE)
 } # }
 ```

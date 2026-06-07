@@ -19,8 +19,18 @@ Download data from ALA
 
 - [`get_ala_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_ala_sounds.md)
   : Download Sound Recordings from Atlas of Living Australia (ALA)
+- [`get_anwc_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_anwc_sounds.md)
+  : Download Sound Recordings from the ANWC (CSIRO) Sound Archive via
+  ALA
 - [`get_ala_circle_occurrences()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_ala_circle_occurrences.md)
   : Download ALA Occurrences for a Taxon Within a Circular Area
+
+## Xeno-Canto
+
+Download sounds from Xeno-Canto
+
+- [`get_xc_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_xc_sounds.md)
+  : Download Sound Recordings from Xeno-Canto
 
 ## Audio Utilities
 

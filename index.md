@@ -9,6 +9,7 @@ You can install the development version of EcoacousticUtilities from
 GitHub:
 
 ``` r
+
 # install.packages("devtools")
 # devtools::install_github("wcornwell/ecoacoustic_utilities")
 ```
@@ -70,6 +71,7 @@ GitHub:
 ## Example Usage
 
 ``` r
+
 library(EcoacousticUtilities)
 
 # Find largest files in a directory
@@ -82,6 +84,7 @@ duplicates <- find_duplicate_wavs("/path/to/audio/library")
 ### iNaturalist Workflow
 
 ``` r
+
 # 1. Quick check: How many sound recordings exist?
 n_sounds <- get_inat_sounds(
   "Turnix maculosus",
@@ -114,6 +117,7 @@ get_inat_sounds(
 ### Downloading Images from iNaturalist
 
 ``` r
+
 # 1. Quick check: How many observation photos exist?
 n_photos <- get_inat_images(
   "Cacatua galerita",
@@ -148,6 +152,7 @@ Here’s a real example analyzing cricket and grasshopper recordings in
 Australia:
 
 ``` r
+
 library(EcoacousticUtilities)
 #> galah: version 2.1.2
 #> ℹ Default node set to ALA (ala.org.au).
@@ -187,6 +192,7 @@ plot_inat_species_summary(
 ### ALA Workflow
 
 ``` r
+
 # Configure ALA email (required for galah)
 library(galah)
 galah_config(email = "your.email@example.com")
@@ -212,6 +218,7 @@ birds <- get_ala_circle_occurrences(
 ### Training Dataset Analysis
 
 ``` r
+
 # Analyze an audio training dataset
 summary <- training_dataset_summary("/path/to/audio/dataset")
 print(summary) # Shows class distribution, file types, sizes, durations, outliers

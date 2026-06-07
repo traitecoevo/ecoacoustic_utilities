@@ -5,14 +5,14 @@ Check if a remote API is reachable
 ## Usage
 
 ``` r
-is_api_reachable(api_type = c("inat", "ala"), timeout_secs = 2)
+is_api_reachable(api_type = c("inat", "ala", "xc"), timeout_secs = 2)
 ```
 
 ## Arguments
 
 - api_type:
 
-  Character. Either "inat" or "ala".
+  Character. One of "inat", "ala", or "xc".
 
 - timeout_secs:
 

@@ -13,4 +13,4 @@ skip_if_api_unavailable(api_type)
 
 - api_type:
 
-  Character. "inat" or "ala".
+  Character. One of "inat", "ala", or "xc".
