@@ -25,7 +25,13 @@ reference:
     desc: "Download data from ALA"
     contents:
       - get_ala_sounds
+      - get_anwc_sounds
       - get_ala_circle_occurrences
+
+  - title: "Xeno-Canto"
+    desc: "Download sounds from Xeno-Canto"
+    contents:
+      - get_xc_sounds
 
   - title: "Audio Utilities"
     desc: "Tools for managing and analyzing audio files"
