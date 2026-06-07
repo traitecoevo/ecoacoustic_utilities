@@ -45,6 +45,7 @@
 #' ggsave("species_summary.png", p, width = 10, height = 8)
 #' }
 #'
+#' @family inaturalist
 #' @export
 #' @importFrom ggplot2 ggplot aes geom_col coord_flip labs theme_minimal theme element_text
 plot_inat_species_summary <- function(

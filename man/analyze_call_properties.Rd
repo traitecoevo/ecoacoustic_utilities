@@ -69,3 +69,12 @@ sels <- data.frame(selec = 1, start = 0, end = 1)
 res_sel <- analyze_call_properties("path/to/file.wav", selection_table = sels)
 }
 }
+\seealso{
+Other audio:
+\code{\link[=biggest_files]{biggest_files()}},
+\code{\link[=convert_to_wav]{convert_to_wav()}},
+\code{\link[=find_duplicate_wavs]{find_duplicate_wavs()}},
+\code{\link[=print.training_dataset_summary]{print.training_dataset_summary()}},
+\code{\link[=training_dataset_summary]{training_dataset_summary()}}
+}
+\concept{audio}

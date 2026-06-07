@@ -32,11 +32,10 @@
 #' }
 #' }
 #'
-#' @export
-#' @importFrom digest digest
 #' @param parallel Logical. If TRUE, use parallel processing for hashing. Default is TRUE.
 #' @param n_cores Integer. Number of cores to use. Default is NULL (auto-detect).
 #'
+#' @family audio
 #' @export
 #' @importFrom digest digest
 find_duplicate_wavs <- function(dir, parallel = TRUE, n_cores = NULL) {

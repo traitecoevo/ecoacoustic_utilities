@@ -60,3 +60,9 @@ get_anwc_sounds("Vanellus miles", target_n = 10)
 }
 
 }
+\seealso{
+Other ala:
+\code{\link[=get_ala_circle_occurrences]{get_ala_circle_occurrences()}},
+\code{\link[=get_ala_sounds]{get_ala_sounds()}}
+}
+\concept{ala}

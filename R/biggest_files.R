@@ -32,6 +32,7 @@
 #' )
 #' }
 #'
+#' @family audio
 #' @export
 #' @importFrom utils head
 biggest_files <- function(root_dir, n = 10, pattern = NULL, ignore_case = TRUE) {

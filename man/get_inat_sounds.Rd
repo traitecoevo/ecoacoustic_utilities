@@ -94,3 +94,10 @@ get_inat_sounds(
 }
 
 }
+\seealso{
+Other inaturalist:
+\code{\link[=get_inat_images]{get_inat_images()}},
+\code{\link[=get_inat_species_summary]{get_inat_species_summary()}},
+\code{\link[=plot_inat_species_summary]{plot_inat_species_summary()}}
+}
+\concept{inaturalist}

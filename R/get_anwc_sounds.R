@@ -38,6 +38,7 @@
 #' get_anwc_sounds("Vanellus miles", target_n = 10)
 #' }
 #'
+#' @family ala
 #' @export
 #' @importFrom galah galah_call galah_identify galah_filter atlas_occurrences
 #' @importFrom httr GET content status_code add_headers timeout

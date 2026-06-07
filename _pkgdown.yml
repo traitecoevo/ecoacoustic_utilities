@@ -10,35 +10,33 @@ navbar:
   components:
     github:
       icon: fa-github
-      href: https://github.com/wcornwell/ecoacoustic_utilities/
+      aria-label: "GitHub repository"
+      href: https://github.com/traitecoevo/ecoacoustic_utilities/
 
+# Sections are driven by roxygen @family tags (concepts), so newly added
+# functions appear automatically as long as they carry the right @family tag.
 reference:
   - title: "iNaturalist"
     desc: "Download sounds and images from iNaturalist"
     contents:
-      - get_inat_sounds
-      - get_inat_images
-      - get_inat_species_summary
-      - plot_inat_species_summary
+      - has_concept("inaturalist")
 
   - title: "Atlas of Living Australia"
     desc: "Download data from ALA"
     contents:
-      - get_ala_sounds
-      - get_anwc_sounds
-      - get_ala_circle_occurrences
+      - has_concept("ala")
 
   - title: "Xeno-Canto"
     desc: "Download sounds from Xeno-Canto"
     contents:
-      - get_xc_sounds
+      - has_concept("xenocanto")
 
   - title: "Audio Utilities"
     desc: "Tools for managing and analyzing audio files"
     contents:
-      - analyze_call_properties
-      - convert_to_wav
-      - biggest_files
-      - find_duplicate_wavs
-      - training_dataset_summary
-      - print.training_dataset_summary
+      - has_concept("audio")
+
+  - title: "Other"
+    desc: "Anything not yet assigned to a section above"
+    contents:
+      - lacks_concepts(c("inaturalist", "ala", "xenocanto", "audio"))

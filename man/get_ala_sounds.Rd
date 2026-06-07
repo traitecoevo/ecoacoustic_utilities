@@ -69,3 +69,9 @@ get_ala_sounds("Ninox boobook", target_n = 10, as_wav = TRUE)
 }
 
 }
+\seealso{
+Other ala:
+\code{\link[=get_ala_circle_occurrences]{get_ala_circle_occurrences()}},
+\code{\link[=get_anwc_sounds]{get_anwc_sounds()}}
+}
+\concept{ala}

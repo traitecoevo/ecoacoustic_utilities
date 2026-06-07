@@ -36,6 +36,7 @@
 #' )
 #' }
 #'
+#' @family ala
 #' @export
 #' @importFrom galah galah_config galah_call galah_identify galah_geolocate atlas_occurrences
 get_ala_circle_occurrences <- function(taxon,

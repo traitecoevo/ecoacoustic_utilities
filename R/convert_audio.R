@@ -10,6 +10,7 @@
 #' @param delete_original Logical. Should the original files be deleted after successful conversion? Defaults to FALSE.
 #'
 #' @return Character vector of paths to the converted WAV files.
+#' @family audio
 #' @export
 #'
 #' @examples

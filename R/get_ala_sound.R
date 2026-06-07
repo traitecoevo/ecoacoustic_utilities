@@ -45,6 +45,7 @@
 #' get_ala_sounds("Ninox boobook", target_n = 10, as_wav = TRUE)
 #' }
 #'
+#' @family ala
 #' @export
 #' @importFrom galah galah_call galah_identify galah_filter atlas_media
 #' @importFrom httr GET write_disk stop_for_status user_agent timeout

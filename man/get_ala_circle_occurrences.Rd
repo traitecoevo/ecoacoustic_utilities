@@ -51,3 +51,9 @@ recent_birds <- get_ala_circle_occurrences(
 }
 
 }
+\seealso{
+Other ala:
+\code{\link[=get_ala_sounds]{get_ala_sounds()}},
+\code{\link[=get_anwc_sounds]{get_anwc_sounds()}}
+}
+\concept{ala}

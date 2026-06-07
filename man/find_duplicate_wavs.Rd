@@ -46,3 +46,12 @@ if (length(dups) > 0) {
 }
 
 }
+\seealso{
+Other audio:
+\code{\link[=analyze_call_properties]{analyze_call_properties()}},
+\code{\link[=biggest_files]{biggest_files()}},
+\code{\link[=convert_to_wav]{convert_to_wav()}},
+\code{\link[=print.training_dataset_summary]{print.training_dataset_summary()}},
+\code{\link[=training_dataset_summary]{training_dataset_summary()}}
+}
+\concept{audio}

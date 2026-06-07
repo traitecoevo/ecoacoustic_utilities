@@ -36,6 +36,7 @@
 #' @importFrom tuneR readWave
 #' @importFrom seewave specprop timer meanspec ffilter
 #' @importFrom warbleR check_sels
+#' @family audio
 #' @export
 #'
 #' @examples

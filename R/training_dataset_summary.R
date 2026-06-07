@@ -84,6 +84,7 @@
 #' )
 #' }
 #'
+#' @family audio
 #' @export
 #' @importFrom utils head tail
 #' @importFrom stats median sd quantile
@@ -452,6 +453,7 @@ training_dataset_summary <- function(
 #'
 #' @param x A training_dataset_summary object
 #' @param ... Additional arguments (ignored)
+#' @family audio
 #' @export
 print.training_dataset_summary <- function(x, ...) {
   cat("=== Training Dataset Summary ===\n\n")

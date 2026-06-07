@@ -60,6 +60,7 @@
 #' )
 #' }
 #'
+#' @family xenocanto
 #' @export
 #' @importFrom httr GET user_agent timeout stop_for_status content
 #' @importFrom jsonlite fromJSON
