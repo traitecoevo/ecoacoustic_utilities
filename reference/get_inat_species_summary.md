@@ -73,6 +73,13 @@ A data.frame with columns: taxon_id, scientific_name, common_name,
 n_recordings. Sorted by n_recordings in descending order. Returns empty
 data.frame if no species meet criteria.
 
+## See also
+
+Other inaturalist:
+[`get_inat_images()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_images.md),
+[`get_inat_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_sounds.md),
+[`plot_inat_species_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/plot_inat_species_summary.md)
+
 ## Examples
 
 ``` r

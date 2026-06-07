@@ -46,6 +46,15 @@ the binary file contents.
 
 Requires the `digest` package to be installed.
 
+## See also
+
+Other audio:
+[`analyze_call_properties()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/analyze_call_properties.md),
+[`biggest_files()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/biggest_files.md),
+[`convert_to_wav()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/convert_to_wav.md),
+[`print.training_dataset_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/print.training_dataset_summary.md),
+[`training_dataset_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/training_dataset_summary.md)
+
 ## Examples
 
 ``` r

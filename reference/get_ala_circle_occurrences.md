@@ -45,6 +45,12 @@ get_ala_circle_occurrences(taxon, lat, lon, radius_km = 10, email = NULL, ...)
 
 A tibble of occurrence records from the ALA.
 
+## See also
+
+Other ala:
+[`get_ala_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_ala_sounds.md),
+[`get_anwc_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_anwc_sounds.md)
+
 ## Examples
 
 ``` r

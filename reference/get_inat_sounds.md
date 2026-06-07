@@ -94,6 +94,13 @@ When `download = TRUE`, the function:
 
 - Automatically converts recordings to WAV if `as_wav = TRUE`
 
+## See also
+
+Other inaturalist:
+[`get_inat_images()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_images.md),
+[`get_inat_species_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_species_summary.md),
+[`plot_inat_species_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/plot_inat_species_summary.md)
+
 ## Examples
 
 ``` r

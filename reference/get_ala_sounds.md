@@ -78,6 +78,12 @@ A known galah 2.x bug causes a recycling error when fetching many sound
 records in a single request. The function automatically falls back to
 year-by-year fetching (most recent years first) to work around this.
 
+## See also
+
+Other ala:
+[`get_ala_circle_occurrences()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_ala_circle_occurrences.md),
+[`get_anwc_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_anwc_sounds.md)
+
 ## Examples
 
 ``` r

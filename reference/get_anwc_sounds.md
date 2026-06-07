@@ -69,6 +69,12 @@ slower than
 especially for taxa with many ANWC records. A progress counter is
 printed as audio files are confirmed.
 
+## See also
+
+Other ala:
+[`get_ala_circle_occurrences()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_ala_circle_occurrences.md),
+[`get_ala_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_ala_sounds.md)
+
 ## Examples
 
 ``` r

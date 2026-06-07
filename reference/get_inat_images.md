@@ -97,6 +97,13 @@ iNaturalist stores photos in several predefined sizes. The default URL
 returned by the API uses the "square" (75px) size. This function
 replaces the size component in the URL with the requested `image_size`.
 
+## See also
+
+Other inaturalist:
+[`get_inat_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_sounds.md),
+[`get_inat_species_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_species_summary.md),
+[`plot_inat_species_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/plot_inat_species_summary.md)
+
 ## Examples
 
 ``` r

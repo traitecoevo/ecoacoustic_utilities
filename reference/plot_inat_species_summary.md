@@ -54,6 +54,13 @@ y-axis and recording counts on the x-axis. Species are ordered by
 recording count (highest at top). If a species has no common name, the
 scientific name is used as fallback.
 
+## See also
+
+Other inaturalist:
+[`get_inat_images()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_images.md),
+[`get_inat_sounds()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_sounds.md),
+[`get_inat_species_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_inat_species_summary.md)
+
 ## Examples
 
 ``` r
