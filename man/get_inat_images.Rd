@@ -5,8 +5,9 @@
 \title{Download Images from iNaturalist}
 \usage{
 get_inat_images(
-  taxon_name,
+  taxon_name = NULL,
   place_name = "Australia",
+  observation_ids = NULL,
   target_n = 300,
   download = TRUE,
   out_dir = "images",
@@ -18,12 +19,24 @@ get_inat_images(
 )
 }
 \arguments{
-\item{taxon_name}{Character. Scientific or common name of the taxon to search for.}
+\item{taxon_name}{Character. Scientific or common name of the taxon to search
+for. Required unless \code{observation_ids} is supplied. Default is NULL.}
 
 \item{place_name}{Character. Name of the geographic place to filter by. Required
-if \code{use_place_filter = TRUE}. Default is "Australia".}
+if \code{use_place_filter = TRUE}. Default is "Australia". Ignored when
+\code{observation_ids} is supplied.}
 
-\item{target_n}{Numeric. Target number of image files to download. Default is 300.}
+\item{observation_ids}{Vector. iNaturalist observation IDs to download. May be
+numeric, character, or full observation URLs (e.g.
+"https://www.inaturalist.org/observations/54040926"); trailing IDs are
+extracted automatically. When supplied, the function fetches exactly these
+observations and ignores \code{taxon_name}, \code{place_name}, and
+\code{quality}. Default is NULL.}
+
+\item{target_n}{Numeric. Target number of photo records to check for download.
+Default is 300. When \code{observation_ids} is supplied and \code{target_n}
+is left at its default, all photos for all listed observations are
+downloaded; set it explicitly to cap the number of photos checked.}
 
 \item{download}{Logical. If TRUE, downloads image files. If FALSE, only returns
 the count of available photos. Default is TRUE.}
@@ -39,7 +52,8 @@ cc-by-nc-sa. Empty license codes are also accepted.}
 searches globally, UNLESS \code{place_name} is explicitly provided. Default is FALSE.}
 
 \item{quality}{Character. Quality grade filter: "research" for research-grade
-observations only, or "all" for all quality grades. Default is "research".}
+observations only, or "all" for all quality grades. Default is "research".
+Ignored when \code{observation_ids} is supplied.}
 
 \item{include_taxon_name}{Logical. If TRUE, prepends the taxon name to the filename
 (e.g., "Genus_species_ObsID_PhotoID.ext"). Default is TRUE.}
@@ -49,11 +63,15 @@ observations only, or "all" for all quality grades. Default is "research".}
 (up to 240px). Default is "original".}
 }
 \value{
-Integer. Total number of matching records found in iNaturalist.
+Integer. Total number of matching records found in iNaturalist (in
+  taxon-search mode) or the number of observation IDs requested (in
+  \code{observation_ids} mode).
 }
 \description{
-Queries the iNaturalist API to find and optionally download photos
-for a specified taxon. Can filter by geographic location and observation quality.
+Queries the iNaturalist API to find and optionally download photos.
+Two modes are supported: (1) search by \code{taxon_name} (optionally
+filtered by geographic location and observation quality), or (2) fetch a
+specific set of observations by passing \code{observation_ids}.
 }
 \details{
 When \code{download = TRUE}, the function:
@@ -68,6 +86,11 @@ When \code{download = TRUE}, the function:
 iNaturalist stores photos in several predefined sizes. The default URL
 returned by the API uses the "square" (75px) size. This function replaces
 the size component in the URL with the requested \code{image_size}.
+
+In \code{observation_ids} mode the observations are fetched in batches of up
+to 200 IDs per API request. The taxon name used for filenames and metadata is
+taken from each observation's own identification rather than a single searched
+taxon.
 }
 \examples{
 \dontrun{
@@ -94,6 +117,13 @@ get_inat_images(
     target_n = 100,
     download = TRUE,
     image_size = "medium"
+)
+
+# Download a specific set of observations (e.g. from a CSV export)
+obs <- read.csv("burnt_only_observations.csv")
+get_inat_images(
+    observation_ids = obs$occurrenceID,
+    image_size = "large"
 )
 }
 
