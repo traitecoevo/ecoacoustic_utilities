@@ -10,7 +10,8 @@ get_inat_sounds(
   target_n = 300,
   download = TRUE,
   out_dir = "sounds",
-  allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa")),
+  allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa",
+    "cc-by-nd", "cc-by-nc-nd")),
   use_place_filter = FALSE,
   quality = c("research", "all"),
   include_taxon_name = TRUE,
@@ -32,8 +33,11 @@ the count of available recordings. Default is TRUE}
 subdirectories "audio" and "metadata.csv". Default is "sounds".}
 
 \item{allowed_licenses}{Character vector. Lowercase license codes to accept.
-Default includes Creative Commons licenses: cc0, cc-by, cc-by-sa, cc-by-nc,
-cc-by-nc-sa. Empty license codes are also accepted.}
+Default accepts all Creative Commons licenses: cc0, cc-by, cc-by-sa,
+cc-by-nc, cc-by-nc-sa, cc-by-nd, cc-by-nc-nd. Empty license codes are also
+accepted. The recorded license is written to the metadata CSV, so the more
+restrictive NoDerivatives (cc-by-nd / cc-by-nc-nd) records can be filtered
+out afterwards if redistribution matters.}
 
 \item{use_place_filter}{Logical. If TRUE, filters observations by place. If FALSE,
 searches globally, UNLESS \code{place_name} is explicitly provided. Default is FALSE.}

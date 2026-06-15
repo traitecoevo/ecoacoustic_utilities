@@ -15,7 +15,11 @@
 #' @param out_dir Character. Output directory for downloaded files. Will create
 #'   subdirectories "audio" and "metadata.csv". Default is "sounds".
 #' @param allowed_licenses Character vector. Lowercase CC license codes to accept.
-#'   Default includes: cc0, cc-by, cc-by-sa, cc-by-nc, cc-by-nc-sa.
+#'   Default accepts all Creative Commons licenses: cc0, cc-by, cc-by-sa,
+#'   cc-by-nc, cc-by-nc-sa, cc-by-nd, cc-by-nc-nd. The recorded license is
+#'   written to the metadata CSV, so the more restrictive NoDerivatives
+#'   (cc-by-nd / cc-by-nc-nd) records can be filtered out afterwards if
+#'   redistribution matters.
 #' @param quality Character vector. Xeno-Canto quality grades to include. Grades
 #'   run from "A" (best) to "E" (worst). Default is c("A", "B").
 #' @param sound_type Character or NULL. Filter by sound type, e.g. "song", "call",
@@ -72,7 +76,7 @@ get_xc_sounds <- function(
   target_n      = 300,
   download      = TRUE,
   out_dir       = "sounds",
-  allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa")),
+  allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa", "cc-by-nd", "cc-by-nc-nd")),
   quality       = c("A", "B"),
   sound_type    = NULL,
   include_taxon_name = TRUE,

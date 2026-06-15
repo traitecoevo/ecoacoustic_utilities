@@ -16,3 +16,6 @@ Rplots.pdf
 # generated outputs
 fowlers_gap_map.png
 top_10_missing_nsw_groups*.csv
+
+# generated clip-extraction working data
+clips_run/
