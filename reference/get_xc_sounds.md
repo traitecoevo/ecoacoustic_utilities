@@ -14,7 +14,8 @@ get_xc_sounds(
   target_n = 300,
   download = TRUE,
   out_dir = "sounds",
-  allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa")),
+  allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa",
+    "cc-by-nd", "cc-by-nc-nd")),
   quality = c("A", "B"),
   sound_type = NULL,
   include_taxon_name = TRUE,
@@ -56,7 +57,11 @@ get_xc_sounds(
 - allowed_licenses:
 
   Character vector. Lowercase CC license codes to accept. Default
-  includes: cc0, cc-by, cc-by-sa, cc-by-nc, cc-by-nc-sa.
+  accepts all Creative Commons licenses: cc0, cc-by, cc-by-sa, cc-by-nc,
+  cc-by-nc-sa, cc-by-nd, cc-by-nc-nd. The recorded license is written to
+  the metadata CSV, so the more restrictive NoDerivatives (cc-by-nd /
+  cc-by-nc-nd) records can be filtered out afterwards if redistribution
+  matters.
 
 - quality:
 

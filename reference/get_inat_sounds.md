@@ -13,7 +13,8 @@ get_inat_sounds(
   target_n = 300,
   download = TRUE,
   out_dir = "sounds",
-  allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa")),
+  allowed_licenses = tolower(c("cc0", "cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa",
+    "cc-by-nd", "cc-by-nc-nd")),
   use_place_filter = FALSE,
   quality = c("research", "all"),
   include_taxon_name = TRUE,
@@ -48,9 +49,12 @@ get_inat_sounds(
 
 - allowed_licenses:
 
-  Character vector. Lowercase license codes to accept. Default includes
-  Creative Commons licenses: cc0, cc-by, cc-by-sa, cc-by-nc,
-  cc-by-nc-sa. Empty license codes are also accepted.
+  Character vector. Lowercase license codes to accept. Default accepts
+  all Creative Commons licenses: cc0, cc-by, cc-by-sa, cc-by-nc,
+  cc-by-nc-sa, cc-by-nd, cc-by-nc-nd. Empty license codes are also
+  accepted. The recorded license is written to the metadata CSV, so the
+  more restrictive NoDerivatives (cc-by-nd / cc-by-nc-nd) records can be
+  filtered out afterwards if redistribution matters.
 
 - use_place_filter:
 
