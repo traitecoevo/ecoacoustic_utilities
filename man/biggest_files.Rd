@@ -48,9 +48,11 @@ big_wavs <- biggest_files(
 \seealso{
 Other audio:
 \code{\link[=analyze_call_properties]{analyze_call_properties()}},
+\code{\link[=check_clips_on_disk]{check_clips_on_disk()}},
 \code{\link[=convert_to_wav]{convert_to_wav()}},
 \code{\link[=find_duplicate_wavs]{find_duplicate_wavs()}},
 \code{\link[=print.training_dataset_summary]{print.training_dataset_summary()}},
+\code{\link[=quarantine_clips]{quarantine_clips()}},
 \code{\link[=training_dataset_summary]{training_dataset_summary()}}
 }
 \concept{audio}

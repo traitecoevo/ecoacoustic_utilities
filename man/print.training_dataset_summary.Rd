@@ -18,8 +18,10 @@ Print method for training_dataset_summary
 Other audio:
 \code{\link[=analyze_call_properties]{analyze_call_properties()}},
 \code{\link[=biggest_files]{biggest_files()}},
+\code{\link[=check_clips_on_disk]{check_clips_on_disk()}},
 \code{\link[=convert_to_wav]{convert_to_wav()}},
 \code{\link[=find_duplicate_wavs]{find_duplicate_wavs()}},
+\code{\link[=quarantine_clips]{quarantine_clips()}},
 \code{\link[=training_dataset_summary]{training_dataset_summary()}}
 }
 \concept{audio}

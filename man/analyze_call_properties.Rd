@@ -72,9 +72,11 @@ res_sel <- analyze_call_properties("path/to/file.wav", selection_table = sels)
 \seealso{
 Other audio:
 \code{\link[=biggest_files]{biggest_files()}},
+\code{\link[=check_clips_on_disk]{check_clips_on_disk()}},
 \code{\link[=convert_to_wav]{convert_to_wav()}},
 \code{\link[=find_duplicate_wavs]{find_duplicate_wavs()}},
 \code{\link[=print.training_dataset_summary]{print.training_dataset_summary()}},
+\code{\link[=quarantine_clips]{quarantine_clips()}},
 \code{\link[=training_dataset_summary]{training_dataset_summary()}}
 }
 \concept{audio}
