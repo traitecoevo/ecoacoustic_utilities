@@ -5,6 +5,7 @@
 <url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/index.html</loc></url>
 <url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/reference/analyze_call_properties.html</loc></url>
 <url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/reference/biggest_files.html</loc></url>
+<url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/reference/check_clips_on_disk.html</loc></url>
 <url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/reference/convert_to_wav.html</loc></url>
 <url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/reference/find_duplicate_wavs.html</loc></url>
 <url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/reference/get_ala_circle_occurrences.html</loc></url>
@@ -18,6 +19,7 @@
 <url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/reference/is_api_reachable.html</loc></url>
 <url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/reference/plot_inat_species_summary.html</loc></url>
 <url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/reference/print.training_dataset_summary.html</loc></url>
+<url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/reference/quarantine_clips.html</loc></url>
 <url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/reference/skip_if_api_unavailable.html</loc></url>
 <url><loc>https://traitecoevo.github.io/ecoacoustic_utilities/reference/training_dataset_summary.html</loc></url>
 </urlset>

@@ -40,12 +40,16 @@ Tools for managing and analyzing audio files
   : Analyze Call Properties: Frequency Range and Pulse Rate
 - [`biggest_files()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/biggest_files.md)
   : Find the Largest Files in a Directory
+- [`check_clips_on_disk()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/check_clips_on_disk.md)
+  : Check Whether Referenced Clips Still Exist on Disk
 - [`convert_to_wav()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/convert_to_wav.md)
   : Convert audio files to WAV format
 - [`find_duplicate_wavs()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/find_duplicate_wavs.md)
   : Find Duplicate WAV Files by Content Hash
 - [`print(`*`<training_dataset_summary>`*`)`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/print.training_dataset_summary.md)
   : Print method for training_dataset_summary
+- [`quarantine_clips()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/quarantine_clips.md)
+  : Quarantine (Reversibly Remove) Clips Named in a Removal Plan
 - [`training_dataset_summary()`](https://traitecoevo.github.io/ecoacoustic_utilities/reference/training_dataset_summary.md)
   : Summarize Audio Training Dataset
 
