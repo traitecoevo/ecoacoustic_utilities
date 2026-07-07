@@ -101,9 +101,16 @@ get_inat_sounds <- function(
   base <- "https://api.inaturalist.org/v1/observations"
 
   ## --- Helper: resolve taxon name to ID ---
+  # iNat's /taxa autocomplete is FUZZY and orders by relevance, so the top hit can
+  # be a different species that merely shares a word (e.g. "Poliocephalus
+  # poliocephalus", the Hoary-headed Grebe, resolves first to "Porphyrio
+  # poliocephalus", the Grey-headed Swamphen). Blindly taking results[[1]] would
+  # silently source the WRONG taxon. Instead fetch several candidates and require
+  # an EXACT (case-insensitive) match on the scientific name or the preferred
+  # common name; refuse rather than guess if none matches.
   tax_resp <- GET(
     "https://api.inaturalist.org/v1/taxa",
-    query = list(q = taxon_name, per_page = 1),
+    query = list(q = taxon_name, per_page = 30),
     ua,
     timeout(30)
   )
@@ -112,12 +119,27 @@ get_inat_sounds <- function(
   if (length(tax_json$results) == 0) {
     stop("No taxon found for name: ", taxon_name)
   }
-  taxon_id <- tax_json$results[[1]]$id
-  resolved_taxon_name <- if (!is.null(tax_json$results[[1]]$name)) {
-    tax_json$results[[1]]$name
-  } else {
-    taxon_name
+  .norm <- function(x) tolower(trimws(x))
+  want <- .norm(taxon_name)
+  exact <- Filter(function(r) {
+    sci <- if (!is.null(r$name)) .norm(r$name) else ""
+    com <- if (!is.null(r$preferred_common_name)) .norm(r$preferred_common_name) else ""
+    identical(sci, want) || identical(com, want)
+  }, tax_json$results)
+  if (length(exact) == 0) {
+    top <- tax_json$results[[1]]
+    stop(
+      "No iNaturalist taxon exactly matches '", taxon_name, "'. ",
+      "Top fuzzy hit was '", top$name, "' (id ", top$id,
+      ") - refusing to source a possibly-different species. ",
+      "Pass an exact scientific name, or verify the taxon on iNaturalist."
+    )
   }
+  # Prefer an active taxon if several match (active vs. synonym/inactive duplicates).
+  active <- Filter(function(r) isTRUE(r$is_active), exact)
+  chosen <- if (length(active) > 0) active[[1]] else exact[[1]]
+  taxon_id <- chosen$id
+  resolved_taxon_name <- if (!is.null(chosen$name)) chosen$name else taxon_name
 
   ## --- Helper: resolve place name to ID (only if filtering by place) ---
   place_id <- NULL
