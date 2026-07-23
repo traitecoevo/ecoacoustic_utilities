@@ -19,3 +19,12 @@ top_10_missing_nsw_groups*.csv
 
 # generated clip-extraction working data
 clips_run/
+
+# Bulk audio working data. This repo is a ~43 MB R package sitting in a ~6 GB
+# directory -- everything below is transient clip data, never a package artifact.
+# clips_run/ is written to by Training_library_assembly_pipeline/species/download_all.R.
+clips_for_sarah/
+*.zip
+downloads/
+birdnet_results/
+# NB: birdnet_test/ is deliberately NOT ignored -- it has tracked test fixtures.
