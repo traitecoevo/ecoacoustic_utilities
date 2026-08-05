@@ -7,7 +7,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/wcornwell/ecoacoustic_utilities/blob/master/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/wcornwell/ecoacoustic_utilities/blob/main/DESCRIPTION)
 
 Cornwell W (2026). *EcoacousticUtilities: Utilities for Ecoacoustics*. R
 package version 0.1.0,
