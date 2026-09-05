@@ -12,7 +12,8 @@ convert_to_wav(
   path,
   out_dir = NULL,
   recursive = FALSE,
-  delete_original = FALSE
+  delete_original = FALSE,
+  channels = 1
 )
 ```
 
@@ -38,9 +39,22 @@ convert_to_wav(
   Logical. Should the original files be deleted after successful
   conversion? Defaults to FALSE.
 
+- channels:
+
+  Integer or NULL. Number of output channels. Defaults to 1 (mono),
+  matching what BirdNET and training libraries expect. Use \`channels =
+  NULL\` to preserve the source channel layout.
+
 ## Value
 
 Character vector of paths to the converted WAV files.
+
+## Details
+
+Output is normalised to BirdNET's expected shape: 16-bit PCM at 48 kHz,
+and mono by default (see \`channels\`). Training libraries are
+conventionally mono, so a stereo source is downmixed rather than passed
+through.
 
 ## See also
 
@@ -59,5 +73,7 @@ Other audio:
 if (FALSE) { # \dontrun{
 convert_to_wav("path/to/audio_file.mp3")
 convert_to_wav("path/to/audio_dir", recursive = TRUE)
+# keep the source's stereo layout instead of downmixing
+convert_to_wav("path/to/audio_dir", channels = NULL)
 } # }
 ```

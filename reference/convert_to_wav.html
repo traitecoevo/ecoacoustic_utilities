@@ -48,7 +48,8 @@ with bioacoustic software like BirdNET that may struggle with compressed audio h
 <span>  <span class="va">path</span>,</span>
 <span>  out_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  recursive <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  delete_original <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  delete_original <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  channels <span class="op">=</span> <span class="fl">1</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -71,10 +72,22 @@ with bioacoustic software like BirdNET that may struggle with compressed audio h
 <dt id="arg-delete-original">delete_original<a class="anchor" aria-label="anchor" href="#arg-delete-original"></a></dt>
 <dd><p>Logical. Should the original files be deleted after successful conversion? Defaults to FALSE.</p></dd>
 
+
+<dt id="arg-channels">channels<a class="anchor" aria-label="anchor" href="#arg-channels"></a></dt>
+<dd><p>Integer or NULL. Number of output channels. Defaults to 1 (mono), matching
+what BirdNET and training libraries expect. Use `channels = NULL` to preserve the
+source channel layout.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Character vector of paths to the converted WAV files.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Output is normalised to BirdNET's expected shape: 16-bit PCM at 48 kHz, and mono by
+default (see `channels`). Training libraries are conventionally mono, so a stereo
+source is downmixed rather than passed through.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -93,6 +106,8 @@ with bioacoustic software like BirdNET that may struggle with compressed audio h
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="fu">convert_to_wav</span><span class="op">(</span><span class="st">"path/to/audio_file.mp3"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">convert_to_wav</span><span class="op">(</span><span class="st">"path/to/audio_dir"</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># keep the source's stereo layout instead of downmixing</span></span></span>
+<span class="r-in"><span><span class="fu">convert_to_wav</span><span class="op">(</span><span class="st">"path/to/audio_dir"</span>, channels <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
