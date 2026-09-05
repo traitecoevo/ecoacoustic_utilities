@@ -8,7 +8,8 @@ convert_to_wav(
   path,
   out_dir = NULL,
   recursive = FALSE,
-  delete_original = FALSE
+  delete_original = FALSE,
+  channels = 1
 )
 }
 \arguments{
@@ -19,6 +20,10 @@ convert_to_wav(
 \item{recursive}{Logical. Should the function search for audio files recursively? Defaults to FALSE.}
 
 \item{delete_original}{Logical. Should the original files be deleted after successful conversion? Defaults to FALSE.}
+
+\item{channels}{Integer or NULL. Number of output channels. Defaults to 1 (mono), matching
+what BirdNET and training libraries expect. Use `channels = NULL` to preserve the
+source channel layout.}
 }
 \value{
 Character vector of paths to the converted WAV files.
@@ -28,10 +33,17 @@ This function converts audio files (MP3, M4A, etc.) to WAV format using the `av`
 or a system `ffmpeg` installation. This is useful for resolving compatibility issues
 with bioacoustic software like BirdNET that may struggle with compressed audio headers.
 }
+\details{
+Output is normalised to BirdNET's expected shape: 16-bit PCM at 48 kHz, and mono by
+default (see `channels`). Training libraries are conventionally mono, so a stereo
+source is downmixed rather than passed through.
+}
 \examples{
 \dontrun{
 convert_to_wav("path/to/audio_file.mp3")
 convert_to_wav("path/to/audio_dir", recursive = TRUE)
+# keep the source's stereo layout instead of downmixing
+convert_to_wav("path/to/audio_dir", channels = NULL)
 }
 }
 \seealso{

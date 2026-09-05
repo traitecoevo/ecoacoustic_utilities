@@ -4,10 +4,17 @@
 #' or a system `ffmpeg` installation. This is useful for resolving compatibility issues
 #' with bioacoustic software like BirdNET that may struggle with compressed audio headers.
 #'
+#' Output is normalised to BirdNET's expected shape: 16-bit PCM at 48 kHz, and mono by
+#' default (see `channels`). Training libraries are conventionally mono, so a stereo
+#' source is downmixed rather than passed through.
+#'
 #' @param path Character. Path to a single audio file or a directory containing audio files.
 #' @param out_dir Character. Optional. Directory to save the converted WAV files. Defaults to the same directory as the input.
 #' @param recursive Logical. Should the function search for audio files recursively? Defaults to FALSE.
 #' @param delete_original Logical. Should the original files be deleted after successful conversion? Defaults to FALSE.
+#' @param channels Integer or NULL. Number of output channels. Defaults to 1 (mono), matching
+#'   what BirdNET and training libraries expect. Use `channels = NULL` to preserve the
+#'   source channel layout.
 #'
 #' @return Character vector of paths to the converted WAV files.
 #' @family audio
@@ -17,16 +24,27 @@
 #' \dontrun{
 #' convert_to_wav("path/to/audio_file.mp3")
 #' convert_to_wav("path/to/audio_dir", recursive = TRUE)
+#' # keep the source's stereo layout instead of downmixing
+#' convert_to_wav("path/to/audio_dir", channels = NULL)
 #' }
-convert_to_wav <- function(path, out_dir = NULL, recursive = FALSE, delete_original = FALSE) {
+convert_to_wav <- function(path, out_dir = NULL, recursive = FALSE, delete_original = FALSE,
+                           channels = 1) {
     if (!dir.exists(path) && !file.exists(path)) {
         stop("Path does not exist: ", path)
+    }
+
+    if (!is.null(channels)) {
+        if (length(channels) != 1 || is.na(channels) || !is.numeric(channels) ||
+            channels < 1 || channels != as.integer(channels)) {
+            stop("'channels' must be a single positive whole number, or NULL to preserve the source layout.")
+        }
+        channels <- as.integer(channels)
     }
 
     # Identify files to convert
     if (dir.exists(path)) {
         # Include .wav so that non-standard WAVs (ADPCM, 24-bit, 32-bit float,
-        # wrong sample rate, etc.) are normalised to 48 kHz 16-bit PCM as well.
+        # wrong sample rate, stereo, etc.) are normalised as well.
         pattern <- "\\.(mp3|m4a|ogg|flac|wma|aiff|aif|wav)$"
         files <- list.files(path, pattern = pattern, full.names = TRUE, recursive = recursive, ignore.case = TRUE)
     } else {
@@ -73,7 +91,9 @@ convert_to_wav <- function(path, out_dir = NULL, recursive = FALSE, delete_origi
         if (has_av) {
             tryCatch(
                 {
-                    av::av_audio_convert(f, write_to, sample_rate = 48000L, verbose = FALSE)
+                    av::av_audio_convert(f, write_to,
+                        channels = channels, sample_rate = 48000L, verbose = FALSE
+                    )
                     success <- TRUE
                 },
                 error = function(e) {
@@ -83,9 +103,11 @@ convert_to_wav <- function(path, out_dir = NULL, recursive = FALSE, delete_origi
             )
         } else if (has_ffmpeg) {
             # -acodec pcm_s16le -ar 48000: 16-bit PCM at 48 kHz (BirdNET compatible)
+            # -ac N: downmix to N channels (mono by default)
+            ac_flag <- if (is.null(channels)) "" else sprintf("-ac %d ", channels)
             cmd <- sprintf(
-                "ffmpeg -y -i %s -acodec pcm_s16le -ar 48000 %s",
-                shQuote(f), shQuote(write_to)
+                "ffmpeg -y -i %s -acodec pcm_s16le -ar 48000 %s%s",
+                shQuote(f), ac_flag, shQuote(write_to)
             )
             res <- system(cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
             if (res == 0) {
