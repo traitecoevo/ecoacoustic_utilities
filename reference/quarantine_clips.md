@@ -72,7 +72,7 @@ Other audio:
 if (FALSE) { # \dontrun{
 plan <- birdnetEmbed::near_duplicate_removal_plan(dups)
 plan <- check_clips_on_disk(plan, "call_library/reallybig")
-quarantine_clips(plan, "call_library/reallybig_quarantine", dry_run = TRUE)
-quarantine_clips(plan, "call_library/reallybig_quarantine")
+quarantine_clips(plan, "call_library/_quarantine/<reason>", dry_run = TRUE)
+quarantine_clips(plan, "call_library/_quarantine/<reason>")
 } # }
 ```
