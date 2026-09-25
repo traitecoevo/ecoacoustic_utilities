@@ -52,6 +52,7 @@ test_that("quarantine is reversible via the manifest", {
 })
 
 test_that("a read-only source dir leaves no duplicate and reports failure", {
+  skip_on_os("windows")                            # Windows ignores dir read-only bit
   s <- make_plan_lib()
   q <- withr::local_tempdir()
   ro <- file.path(s$root, "A a_Aye")
